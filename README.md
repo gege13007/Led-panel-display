@@ -1,5 +1,5 @@
-PANNEAU A LED PROGRAMMABLE sur Raspberry Pi GPIO
-================================================
+PANNEAU A LED PROGRAMMABLE sur Raspberry Pi
+===========================================
 Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu que je ne pouvais pas facilement afficher de grosses lettres avec ses seuls programmes d'exemple (fontes bdf pas commodes...). De là est venue l'idée de redéfinir mes fontes sous formes d'images .gif (ou autres), et de créer un petit langage de commande (comme html).
 Le petit utilitaire en VBasic 'FontCreator' permet de générer des fichiers Gif pour chaque lettre, en choisissant une police et en balayant d'un code Ascii à un autre. Il n'y a plus qu'à vérifier ou ajuster les gifs avec n'importe quel soft de retouche.
 
