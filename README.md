@@ -1,7 +1,20 @@
 PANNEAU A LED PROGRAMMABLE sur Raspberry Pi GPIO
 ================================================
-Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore, je me suis aperçu que je ne pouvais pas facilement afficher de grosses lettres ou faire un peu n'importe quoi avec les seuls programmes d'exemple.
+Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu que je ne pouvais pas facilement afficher de grosses lettres avec ses seuls programmes d'exemple (fontes bdf pas faciles à fabriquer). Je suis parti de l'idée de redéfinir mes fontes sous formes d'images .gif (ou autres).
+Le petit utilitaire en VBasic 'FontCreator' permet de générer des fichiers Gif pour chaque lettre, en choisissant une police et en balayany d'un code Ascii à un autre. Il n'y a plus qu'à les vérifier ou les ajuster avec n'importe quel soft de retouche.
 
+De là est parti le programme 'panelviewer.cc' qui permet d'afficher un texte enrichi directement (stocké message.txt) un peu à la manière d'un fichier html. Un système de tags permet de faire des effets ou de modifier les paramètres d'affichage.
+Comme en xml, chaque commande est sous la forme :
+   <FONCTION : paramètre>
+   
+(Si le ':' ou le '>' sont omis, la commande n'est pas valide et les caractères affichés).
+
+Voici ce que cela peut donner dans 'message.txt' :
+
+msg = "<CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<INK:22ff22>5€<PAUSE:1><PIXELISE:10><IMGFITW:pizza2.jpg><PAUSE:1>
+<EXPLODE:5>"
+
+Et voici la liste des fonctions déjà réalisées :
 
 <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
 <BACKCOLOR:rrggbb> définit la couleur de fond (rrggbb en hexa)
@@ -36,3 +49,19 @@ Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilis
 <SPLASH1:file> Remplit tout l'écran avec un motif (file) au hasard.
 <SPLASH2:file> Remplit tout l'écran avec un motif (file) en balayage horizontal.
 <UP:n> Shifte l'écran n pixels vers le haut.
+
+Encore à venir :
+- le support des gifs animés et des vidéos.
+
+UTILISATION
+===========
+
+Faire sudo ./panelviewer 
+( ajouter --led-no-hardware-pulse si la sortie son de votre PI est active)
+
+Le fichier 'panel-config' contient des paramètres par défaut au démarrage (fonte...).
+
+Remerciements
+=============
+Encore une fois merci à H.Zeller pour son travail. Vous trouverez tout sur la construction et l'interfaçage des matrices de leds, ainsi que la librairie RGBmatrix sur https://github.com/hzeller
+
