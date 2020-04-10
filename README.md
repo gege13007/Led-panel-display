@@ -90,11 +90,15 @@ UTILISATION
 ===========
 
 Faire sudo ./panelviewer 
-( ajouter --led-no-hardware-pulse si la sortie son de votre PI est active)
+( ajouter --led-no-hardware-pulse si la sortie son de votre PI est active, ou alors 'dtparam-audio=off' dans /boot/config.txt')
 
-Le fichier 'panel-config' contient des paramètres par défaut au démarrage (fonte...).
+Le fichier 'panel-config.txt' contient des paramètres par défaut au démarrage : 
+* fonte = nom de la fonte au démarrage (correspond au nom de dossier)
+* chain = nb de matrices en série par ligne de commande GPIO paramètre (voir hzeller)
+* parallel = nb de lignes GPIO en parallèle (voir hzeller).
 
 Remerciements
 =============
-Encore une fois merci à H.Zeller pour son travail. Vous trouverez tout sur la construction et l'interfaçage des matrices de leds, ainsi que la librairie RGBmatrix sur https://github.com/hzeller
+Encore une fois merci à H.Zeller pour son travail. Vous trouverez tout sur la construction et l'interfaçage des matrices de leds, ainsi que la librairie RGBmatrix sur https://github.com/hzeller.
+Le prog utilise les librairies graphiques Magick++ de www.imagemagick.org/
 
