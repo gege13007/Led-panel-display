@@ -17,11 +17,17 @@ msg = "<CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<IN
 Et voici la liste des fonctions déjà réalisées :
 
 <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
+
 <BACKCOLOR:rrggbb> définit la couleur de fond (rrggbb en hexa)
+
 <BACKGRD:file> pour définir une image de fond, fixe et permanente. On peut arreter en faisant <BACKGRD:>
+
 <BLINK:n> fait clignoter l'écran (n fois)
+
 <CADRE:n> dessine un liseré (cadre) d'épaisseur n pixel, et de couleur INKCOLOR. Il est fixe, permanent et affiché sur tout le reste, jusqu'à ce qu'on fasse <CADRE:0>.
+
 <CLEAR:n> Effacement de l'écran (à BackColor). Si n=0 le pointeur d'écriture revient à gauche.
+
 <CRENAGE:n> Pour définir un écart +/- pixels entre chaque lettres (-2 serre de 2 pixels plus à gauche). Faire SOLID=0 pour avoir le fond des lettres transparent, sinon une lettre peut effacer la précédente.
 <DIVIDE:s> Effet de division en deux de l'écran par le milieu jusqu'à Backcolor (s=vitesse)
 <DOWN:n> Shifte l'écran n pixels vers le bas.
