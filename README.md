@@ -35,7 +35,7 @@ Et voici la liste des fonctions déjà réalisées :
 <IMGSWP:file> Affiche une image sans déformation. Si elle est trop grande, fait un balayage (tournant) de la taille de l'écran.
 <INK:rrggbb> Définit la couleur de l'encre du prochain car.
 <INVERT:n> Fait un effet de négatif sur l'écran (n fois).
-<PAUSE:n> Pause du défilement... n secondes.
+<PAUSE:n> Pause du défilement... n secondes. 
 <PIXELISE:s> Fait un effet de pixelisation jusqu'à vider l'écran (s=vitesse)
 <RAINBOWBACK:n> Fait un effet d'arc en ciel sur le fond du texte (s=vitesse)
 <RAINBOWINK:n> Fait un effet d'arc en ciel sur le texte (s=vitesse)
