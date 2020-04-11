@@ -68,6 +68,8 @@ Et voici la liste des fonctions déjà réalisées :
 
 <ROTG:ang> Effet de rotation de l'écran de ang degrés sur la gauche
 
+<SETX:n> Positionne le pointeur d'écriture en X=n
+
 <SHAKE:n> Effet de tremblements (n fois)
 
 <SLOW:n> Fait un ralenti progressif du défilement si n=1 (jusqu'à une PAUSE par exemple)
