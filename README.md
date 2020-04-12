@@ -51,6 +51,8 @@ Et voici la liste des fonctions déjà réalisées :
 
 <IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Le curseur ne bouge pas.
 
+<IMG+><IMGW+><IMGH+> idem que ci-dessus avec déplacement du curseur.
+
 <IMGSWP:file> Affiche une image (pas de gif animé) sans déformation. Si elle est trop grande, fait un balayage (tournant) de la taille de l'écran.
 
 <INK:rrggbb> Définit la couleur de l'encre du prochain car.
@@ -67,7 +69,7 @@ Et voici la liste des fonctions déjà réalisées :
 
 <RAINBOWINK:n> Fait un effet d'arc en ciel sur le texte (s=vitesse)
 
-<RAZ:x> Revient au début du message (permet de masquer la fin ?)
+<RESET:x> Revient au début du message (permet de masquer la fin ?)
 
 <ROTD:ang> Effet de rotation de l'écran de ang degrés sur la droite
 
