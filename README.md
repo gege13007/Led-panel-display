@@ -45,11 +45,11 @@ Et voici la liste des fonctions déjà réalisées :
 
 <FONT:txt> Nom du répertoire de la fonte choisie
 
-<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Le curseur ne bouge pas.
+<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas.
 
-<IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Le curseur ne bouge pas.
+<IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Gifs animés compris. Le curseur ne bouge pas.
 
-<IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Le curseur ne bouge pas.
+<IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Gifs animés compris. Le curseur ne bouge pas.
 
 <IMG+><IMGW+><IMGH+> idem que ci-dessus avec déplacement du curseur.
 
