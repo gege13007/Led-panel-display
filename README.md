@@ -1,9 +1,10 @@
 PANNEAU A LED PROGRAMMABLE sur Raspberry Pi
 ===========================================
-Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu que je ne pouvais pas facilement afficher de grosses lettres avec ses seuls programmes d'exemple (fontes bdf pas commodes...). De là est venue l'idée de redéfinir mes fontes sous formes d'images .gif (ou autres), et de créer un petit langage de commande (comme html).
+Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu que je ne pouvais pas facilement afficher de grosses lettres avec ses seuls programmes d'exemple (fontes bdf pas très commodes...). D'où l'idée de redéfinir des fontes sous formes d'images .gif (ou autres), et de créer une sorte de langage de commande comme du html, pour permettre toute sorte d'affichage.
+
 Le petit utilitaire en VBasic 'FontCreator' permet de générer des fichiers Gif pour chaque lettre, en choisissant une police et en balayant d'un code Ascii à un autre. Il n'y a plus qu'à vérifier ou ajuster les gifs avec n'importe quel soft de retouche.
 
-De là est parti le programme 'panelviewer.cc' qui permet d'afficher un texte enrichi directement (stocké dans message.txt) un peu à la manière d'un fichier html. Un système de tags permet de faire des effets ou de modifier les paramètres d'affichage.
+Le programme 'panelviewer.cc' qui permet d'afficher un texte enrichi directement (stocké dans message.txt) un peu à la manière d'un fichier html. Un système de tags permet de faire des effets ou de modifier les paramètres d'affichage.
 Comme en xml, chaque commande est sous la forme :
    <FONCTION : paramètre>
    
@@ -32,6 +33,8 @@ Et voici la liste des fonctions déjà réalisées :
 
 <DIVIDE:s> Effet de division en deux de l'écran par le milieu jusqu'à Backcolor (s=vitesse)
 
+<DO:> Marque le début d'une boucle <LOOP:n>. Utile pour rpéter un bloc de commandes, un Gif animé...
+
 <DOWN:n> Shifte l'écran n pixels vers le bas.
 
 <EXPLODE:n> Fait un effet d'explosion/mélange des pixels (n = longueur)
@@ -42,17 +45,19 @@ Et voici la liste des fonctions déjà réalisées :
 
 <FONT:txt> Nom du répertoire de la fonte choisie
 
-<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran).
+<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Le curseur ne bouge pas.
 
-<IMGFITW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé).
+<IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Le curseur ne bouge pas.
 
-<IMGFITH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé).
+<IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Le curseur ne bouge pas.
 
-<IMGSWP:file> Affiche une image sans déformation. Si elle est trop grande, fait un balayage (tournant) de la taille de l'écran.
+<IMGSWP:file> Affiche une image (pas de gif animé) sans déformation. Si elle est trop grande, fait un balayage (tournant) de la taille de l'écran.
 
 <INK:rrggbb> Définit la couleur de l'encre du prochain car.
 
 <INVERT:n> Fait un effet de négatif sur l'écran (n fois).
+
+<LOOP:n> Si n>1 revient juste après le précédent <DO:>, et reboucle n fois au total. Utile pour répéter un gif animé...
 
 <PAUSE:n> Pause du défilement... n secondes. 
 
@@ -68,7 +73,7 @@ Et voici la liste des fonctions déjà réalisées :
 
 <ROTG:ang> Effet de rotation de l'écran de ang degrés sur la gauche
 
-<SETX:n> Positionne le pointeur d'écriture en X=n
+<SETX:n> (et <SETY:n>) Positionne le pointeur d'écriture en X=n ou Y=n.
 
 <SHAKE:n> Effet de tremblements (n fois)
 
@@ -86,7 +91,8 @@ Et voici la liste des fonctions déjà réalisées :
 
 
 Encore à venir :
-- le support des gifs animés et des vidéos.
+- le support des vidéos.
+- l'écriture à 90° ?
 
 UTILISATION
 ===========
@@ -94,10 +100,12 @@ UTILISATION
 Faire sudo ./panelviewer 
 ( ajouter --led-no-hardware-pulse si la sortie son de votre PI est active, ou alors 'dtparam-audio=off' dans /boot/config.txt')
 
-Le fichier 'panel-config.txt' contient des paramètres par défaut au démarrage : 
+Le fichier 'panel-config.txt' contient certains paramètres par défaut chargés au démarrage, et qui peuvent remplacer les paramètres en-ligne initiaux du système créé par HZeller : 
 * fonte = nom de la fonte au démarrage (correspond au nom de dossier)
-* chain = nb de matrices en série par ligne de commande GPIO paramètre (voir hzeller)
-* parallel = nb de lignes GPIO en parallèle (voir hzeller).
+* led-chain = nb de matrices en série par ligne de commande GPIO paramètre (défaut 1)
+* led-parallel = nb de lignes GPIO en parallèle (défaut 1)
+* led-rows = nb de lignes de leds par carreau (défaut 32)
+* led-cols = nb de colonnes de leds par carreau (défaut 32)
 
 Remerciements
 =============
