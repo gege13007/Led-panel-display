@@ -17,9 +17,9 @@ msg = "<CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<IN
 
 Et voici la liste des fonctions déjà réalisées :
 
- <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
+ '<BLUR:s>' fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
 
- <BACKCOLOR:rrggbb> définit la couleur de fond (rrggbb en hexa)
+ '<BACKCOLOR:rrggbb>' définit la couleur de fond (rrggbb en hexa)
 
  <BACKGRD:file> pour définir une image de fond, fixe et permanente. On peut arreter en faisant <BACKGRD:>
 
