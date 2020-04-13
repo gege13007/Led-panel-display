@@ -25,7 +25,7 @@ Et voici la liste des fonctions déjà réalisées :
 
 <BLINK:n> fait clignoter l'écran (n fois)
 
-<CADRE:n> dessine un liseré (cadre) d'épaisseur n pixel, et de couleur INKCOLOR. Il est fixe, permanent et affiché sur tout le reste, jusqu'à ce qu'on fasse <CADRE:0>.
+<CADRE:n> dessine un liseré (cadre) d'épaisseur n pixel. Un cadre est fixe, permanent et affiché en premier plan, jusqu'à ce qu'on fasse <CADRE:0>. La couleur du cadre est la valeur INKCOLOR au moment de la commande.
 
 <CLEAR:n> Effacement de l'écran (à BackColor). Si n=0 le pointeur d'écriture revient à gauche.
 
@@ -45,7 +45,7 @@ Et voici la liste des fonctions déjà réalisées :
 
 <FONT:txt> Nom du répertoire de la fonte choisie
 
-<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas.
+<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence. Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée.
 
 <IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Gifs animés compris. Le curseur ne bouge pas.
 
@@ -91,14 +91,14 @@ Et voici la liste des fonctions déjà réalisées :
 
 <UP:n> Shifte l'écran n pixels vers le haut.
 
-
-Encore à venir :
+AMELIORATIONS PREVUES
+=====================
 - le support des vidéos.
+- ecriture du txt sur plusieurs lignes
 - l'écriture à 90° ?
 
 UTILISATION
 ===========
-
 Faire sudo ./panelviewer 
 ( ajouter --led-no-hardware-pulse si la sortie son de votre PI est active, ou alors 'dtparam-audio=off' dans /boot/config.txt')
 
@@ -108,6 +108,10 @@ Le fichier 'panel-config.txt' contient certains paramètres par défaut chargés
 * led-parallel = nb de lignes GPIO en parallèle (défaut 1)
 * led-rows = nb de lignes de leds par carreau (défaut 32)
 * led-cols = nb de colonnes de leds par carreau (défaut 32)
+
+LIMITATIONS
+===========
+Le proto toune sur une carte PI 3b+ (donc assez rapide) avec un écran de 160*64 pixels (5*32 / 2*32), piloté sur deux lignes parallèles. La vitesse est suffisante dans ce cas, veci dit il m'a paru raisonnable de limiter le buffer à une taille max de 512*512 en dur dans le programme. Une taille carrée est utile pour la rotation d'image...
 
 Remerciements
 =============
