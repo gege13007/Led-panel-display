@@ -19,7 +19,7 @@ Et voici la liste des fonctions déjà réalisées :
 
 <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
 
-<BACKCOLOR:rrggbb> définit la couleur de fond (rrggbb en hexa)
+<BACK:rrggbb> définit la couleur de fond (rrggbb en hexa)
 
 <BACKGRD:file> pour définir une image de fond, fixe et permanente. On peut arreter en faisant <BACKGRD:>
 
@@ -41,9 +41,13 @@ Et voici la liste des fonctions déjà réalisées :
 
 <FADE:s> Assombrit progressivement l'écran jusqu'au fond noir (s=vitesse)
 
-<FIXE:n> Permet de passer en mode fixe (=1 : pas de défilement de l'écran), ou défilant (=0 par défaut vers la gauche).
+<FIXE:n> Permet de passer en mode fixe (=1 : pas de défilement de l'écran), ou défilant (=0 par défaut vers la gauche). Attention, les caractères trop à droite sont perdus.
 
-<FONT:txt> Nom du répertoire de la fonte choisie
+<FONDU:file> Affiche une image en fondu/enchainé (pas de déformation, peut dépasser de l'écran). Le curseur ne bouge pas.
+
+<FONT:txt> Nom du répertoire de la fonte choisie.
+
+<FONTSIZE:n> Permet de resizer la fonte en cours. Donne la nouvelle hauteur en pixels. Attention : opération calcul de resize en plus à chaque affichage de caractère.
 
 <IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence. Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée.
 
@@ -59,7 +63,9 @@ Et voici la liste des fonctions déjà réalisées :
 
 <INVERT:n> Fait un effet de négatif sur l'écran (n fois).
 
-<LOOP:n> Si n>1 revient juste après le précédent <DO:>, et reboucle n fois au total. Utile pour répéter un gif animé...
+<LEFT:n> Décale tout l'écran de n pixels à gauche.
+
+<LOOP:n> Si n>1 revient juste après le précédent <DO:>, et reboucle n fois au total. Si n=0 boucle infini. Utile pour répéter un gif animé...
 
 <PAUSE:n> Pause du défilement... n secondes. 
 
@@ -71,9 +77,13 @@ Et voici la liste des fonctions déjà réalisées :
 
 <RESET:x> Revient au début du message (permet de masquer la fin ?)
 
+<RIGHT:n> Décale tout l'écran de n pixels vers la droite.
+
 <ROTD:ang> Effet de rotation de l'écran de ang degrés sur la droite
 
 <ROTG:ang> Effet de rotation de l'écran de ang degrés sur la gauche
+
+<ROTSPEED:ang> Effet de rotation qui accélère à fond de ang degrés.
 
 <SETX:n> (et <SETY:n>) Positionne le pointeur d'écriture en X=n ou Y=n.
 
@@ -89,12 +99,13 @@ Et voici la liste des fonctions déjà réalisées :
 
 <SPLASH2:file> Remplit tout l'écran avec un motif (file) en balayage horizontal.
 
+<TWIRL:ang> Effet de rotation en Tourbillon déformant sur l'écran de ang degrés.
+
 <UP:n> Shifte l'écran n pixels vers le haut.
 
 AMELIORATIONS PREVUES
 =====================
 - le support des vidéos.
-- ecriture du txt sur plusieurs lignes
 - l'écriture à 90° ?
 
 UTILISATION
@@ -112,9 +123,9 @@ Le fichier 'panel-config.txt' contient certains paramètres par défaut chargés
 LIMITATIONS
 ===========
 Le proto toune sur une carte PI 3b+ (donc assez rapide) avec un écran de 160*64 pixels (5*32 / 2*32), piloté sur deux lignes parallèles. La vitesse est suffisante dans ce cas, veci dit il m'a paru raisonnable de limiter le buffer à une taille max de 512*512 en dur dans le programme. Une taille carrée est utile pour la rotation d'image...
+Pour avoir de la marge, on essaie d'avoir un buffer d'au moins 3 * hauteurs d'écran (3*screenH); et large comme screenW+screenH. L'écriture se fait par défaut à la position x=0, y=screenH (à une hauteur d'écran) : au milieu à gauche dans le buffer.
 
 Remerciements
 =============
 Encore une fois merci à H.Zeller pour son travail. Vous trouverez tout sur la construction et l'interfaçage des matrices de leds, ainsi que la librairie RGBmatrix sur https://github.com/hzeller.
 Le prog utilise les librairies graphiques Magick++ de www.imagemagick.org/
-
