@@ -1,0 +1,8 @@
+//.......................................................................[[
+//                 Définition et paramètres du Texte                     [[
+//-----------------------------------------------------------------------||
+//Les fontes utilisent les codes ASCII standards de 0x20 à 0x7E- sauf le caractère € qui prend la valeur 0x7F
+
+msg = "<CLEAR:0><SPEED:22><INK:808070><CADRE:1><SOLID:0><SETX:45><IMGH:pharma2.gif><RIGHT:145><SOLID:0><INK:d01010><FONTSIZE:29><FONT:arial64><CRENAGE:-3><SETX:5><SETY:3>Annabelle<SETX:3><SETY:34>estderetour<PAUSE:1><SOLID:1><SETX:0><SETY:0><FONDU:anabelle.jpg><PAUSE:2><TWIRL:720><EXPLODE:40><RESET:0>"
+
+msg = "<CLEAR:0><FONT:comic48><CRENAGE:-6><FIXE:1>ABCD<CADRE:1><DOWN:60><CLEAR:0>abcde<DOWN:60><CLEAR:0><IMG:caa.gif><EXPLODE:22>"
