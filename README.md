@@ -100,6 +100,13 @@ Et voici la liste des fonctions déjà réalisées :
 
 <UP:n> Shifte l'écran n pixels vers le haut.
 
+EXEMPLES VIDEOS DEMOS
+=====================
+La pharmacie https://youtu.be/9tcXBY5XUHY
+
+Images et effets https://youtu.be/1gwI9AUk74s 
+
+
 AMELIORATIONS PREVUES
 =====================
 - le support des vidéos.
