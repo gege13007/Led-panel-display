@@ -1,25 +1,24 @@
 PANNEAU A LED RGB PROGRAMMABLE sur Raspberry Pi
 ===============================================
-Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu que je ne pouvais pas facilement afficher de grosses lettres avec ses seuls programmes d'exemple (fontes bdf pas très commodes...). D'où l'idée de redéfinir des fontes sous formes d'images .gif (ou autres), et de créer une sorte de langage de commande comme du html, pour permettre toute sorte d'affichage.
+Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu qu'il étais difficile d'afficher de grosses lettres avec le seul programme d'exemple disponible (fontes bdf pas très commodes...). D'où l'idée de construire un système plus complet permettant de redéfinir des fontes sous formes d'images .gif (ou autres), et de créer une sorte de langage de commande hypertexte comme du html, pour permettre toute sorte d'affichage, de choix des couleurs, d'effets spéciaux, etc...
 
-Le petit utilitaire en VBasic 'FontCreator' permet de générer des fichiers Gif pour chaque lettre, en choisissant une police et en balayant d'un code Ascii à un autre. Il n'y a plus qu'à vérifier ou ajuster les gifs avec n'importe quel soft de retouche.
+Le programme en VBasic 'FontCreator' permet de vite générer des fichiers Gif pour chaque lettre, en choisissant une police et en balayant d'un code Ascii à un autre. Il n'y a plus qu'à vérifier ou ajuster les gifs avec n'importe quel soft de retouche.
 
-Le programme 'panelviewer.cc' qui permet d'afficher un texte enrichi directement (stocké dans message.txt) un peu à la manière d'un fichier html. Un système de tags permet de faire des effets ou de modifier les paramètres d'affichage.
-Comme en xml, chaque commande est sous la forme :
-   <FONCTION : paramètre>
+Le programme 'panelviewer.cc' permet d'afficher un texte enrichi directement (stocké dans message.txt) un peu à la manière d'un fichier html. Un système de tags permet de faire des effets ou de modifier les paramètres d'affichage, les couleurs ou les images, et les effets.
+Comme en xml, chaque commande est sous la forme : <FONCTION : paramètre>
    
 (Si le ':' ou le '>' sont omis, la commande n'est pas valide et les caractères affichés).
 
 Voici ce que cela peut donner dans 'message.txt' :
 
 msg = "<CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<INK:22ff22>5€<PAUSE:1><PIXELISE:10><IMGFITW:pizza2.jpg><PAUSE:1>
-<EXPLODE:5>"
+<EXPLODE:5><RESET:0>"
 
 Et voici la liste des fonctions déjà réalisées :
 
 <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
 
-<BACK:rrggbb> définit la couleur de fond (rrggbb en hexa)
+<BACK:rrggbb> définit la couleur de fond (rrggbb en hexa).C'est la dernière couleur de fond définie qui est utilisée avec les effets.
 
 <BACKGRD:file> pour définir une image de fond, fixe et permanente. On peut arreter en faisant <BACKGRD:>
 
@@ -43,23 +42,21 @@ Et voici la liste des fonctions déjà réalisées :
 
 <FIXE:n> Permet de passer en mode fixe (=1 : pas de défilement de l'écran), ou défilant (=0 par défaut vers la gauche). Attention, les caractères trop à droite sont perdus.
 
-<FONDU:file> Affiche une image en fondu/enchainé (pas de déformation, peut dépasser de l'écran). Le curseur ne bouge pas.
+<FONDU:file> Affiche une image avec une transition en fondu/enchainé (pas de déformation, peut dépasser de l'écran).
 
 <FONT:txt> Nom du répertoire de la fonte choisie.
 
 <FONTSIZE:n> Permet de resizer la fonte en cours. Donne la nouvelle hauteur en pixels. Attention : opération calcul de resize en plus à chaque affichage de caractère.
 
-<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence. Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée.
+<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence. Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée. A chaque dessin d'une image le curseur en X est avancé si FIXE=0. Inchangé si FIXE=1 (pas de défimenent).
 
-<IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Gifs animés compris. Le curseur ne bouge pas.
+<IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Gifs animés compris. Une image qui dépasse l'écran en hauteur est recentrée en Y.
 
-<IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Gifs animés compris. Le curseur ne bouge pas.
-
-<IMG+><IMGW+><IMGH+> idem que ci-dessus avec déplacement du curseur.
+<IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Gifs animés compris.
 
 <IMGSWP:file> Affiche une image (pas de gif animé) sans déformation. Si elle est trop grande, fait un balayage (tournant) de la taille de l'écran.
 
-<INK:rrggbb> Définit la couleur de l'encre du prochain car.
+<INK:rrggbb> Définit la couleur de l'encre du prochain car. C'est la dernière couleur INK qui est utilisée dans certains effets.
 
 <INVERT:n> Fait un effet de négatif sur l'écran (n fois).
 
@@ -71,11 +68,11 @@ Et voici la liste des fonctions déjà réalisées :
 
 <PIXELISE:s> Fait un effet de pixelisation jusqu'à vider l'écran (s=vitesse)
 
-<RAINBOWBACK:n> Fait un effet d'arc en ciel sur le fond du texte (s=vitesse)
+<RAINBOWBACK:n> Fait un effet d'arc en ciel sur le fond du texte (s=vitesse). Utilise la couleur de fond en cours.
 
-<RAINBOWINK:n> Fait un effet d'arc en ciel sur le texte (s=vitesse)
+<RAINBOWINK:n> Fait un effet d'arc en ciel sur le texte (s=vitesse). Utilise la couleur INK en cours.
 
-<RESET:x> Revient au début du message (permet de masquer la fin ?)
+<RESET:x> Revient au début du message, sinon le programme s'arrête à la fin du message.
 
 <RIGHT:n> Décale tout l'écran de n pixels vers la droite.
 
