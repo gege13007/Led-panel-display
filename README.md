@@ -1,16 +1,16 @@
 MAKE YOUR OWN PROGRAMMABLE RGB DISPLAY PANEL
 ======================================================
-After my first tests of led panel display building with 32x32 rgb leds matrix with hzeller library (thanks to him) - I have quickly realized that I couldn't draw so big characters as my panel display (the demo prog uses old bdf fonts).
+After my first tests of led panel display building with 32x32 rgb leds matrix (with hzeller library - thanks to him) - I quickly realized that I couldn't draw so big characters to fit my panel display (the demo prog uses old bdf fonts).
 My idea was also to implement a simple but diversified markup language allowing to cover a maximum of situations.
 I began to build my own new fonts using small Gif images. It's now possible to write enriched texts, including some special commands to change the font, size, position, colors, and some special effects...
 It's now possible to mix all kind of pictures, with text, scrolling or not...
 
 I also made 'FontWriter' in VB6 to create my gifs font files for each characters. You just have to choose a font anf size. Enter the first char ascii code (like A) and the last ascii code (like Z). Then 'Ecrire' will create gif char from A to Z. You'll may be need to retouch them with your best drawing software. For now, the panel uses only the 8 bits direct ascii codes of the c langage compiler (from 32 to 128). The 128 code is re-affected to '€' char.
 
-So 'panelviewer' (written in C) allows you to display an enriched text (stored in file message.txt) in the same manner than html file. Some special tags allow to specify the ink and back colors, the position and size, and also to do some special transitions and effects.
+So 'panelviewer' (written in C) allows you to display enriched text (stored in file message.txt) in the same manner than html file. Some special tags allow to specify the ink and back colors, the position and size, and also to do some special transitions and effects.
 Like with xml tags, each command must be written like this : <FONCTION : parameter>
- 
 (If ':' or '>' are omitted, the command is ignored and displayed like simple text).
+The panel may use 2 differents kinds of color masks, one buffer for the colored border line, another buffer for a backgroud picture.
 
 Here's a file example 'message.txt' :
 
