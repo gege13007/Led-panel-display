@@ -1,4 +1,4 @@
-MAKE YOUR OWN UNIVERSAL PROGRAMMABLE RGB DISPLAY PANEL
+MAKE YOUR OWN PROGRAMMABLE RGB DISPLAY PANEL
 ======================================================
 After my first tests of led panel display building with 32x32 rgb leds matrix with hzeller library (thanks to him) - I have quickly realized that I couldn't draw so big characters as my panel display (the demo prog uses old bdf fonts).
 My idea was also to implement a simple but diversified markup language allowing to cover a maximum of situations.
