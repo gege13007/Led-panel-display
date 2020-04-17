@@ -13,7 +13,7 @@
 #include <string.h>
 #include <vector>
 #include <sys/stat.h>
-#include <sys/time.h>
+#include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <algorithm>
@@ -99,7 +99,7 @@ pixcol cadremask[xmax_buff][ymax_buff];
 pixcol backmask[xmax_buff][ymax_buff];
 
 const short MAXLENMSG = 2048;
-char msg[MAXLENMSG] = "<CLEAR:0><INK:E00800><FONT:timesnew50>abc<RESET:0>";
+char msg[MAXLENMSG];
 
 //Fonte de char (correspond au dossier à utliser)
 char font[128];
@@ -110,6 +110,9 @@ unsigned short fontsize = 0;
 //Vitesse de défilement (0=à fond, 100=maxi très lent)
 unsigned short speed = 20;
  
+//Pas de défilement (1=normal, 5=max)
+unsigned short step = 1;
+
 //epaisseur du cadre en pixel
 unsigned short lisere = 0;
 
@@ -314,27 +317,27 @@ unsigned short n,x,y;
 //-----------------------------------------------------------------------
 //Rafraichit la matrix canvas avec buff|]
 void Fresh(RGBMatrix *matx, FrameCanvas *canv) {
-unsigned short x,y;
+unsigned short x, y, ybuff;
 pixcol col;
 
  //x,y balaie la surface écran dans Buff
- for (y = screenH; y < screenH+screenH; ++y) {
+ for (y = 0, ybuff=screenH; y < screenH; ++y, ++ybuff) {
    for (x = 0; x < screenW; ++x) {
      //recalage sur buff en y
-     col = buff[x][y];
+     col = buff[x][ybuff];
      
      //Si applique l'image de fond ?
      if (background != 0)
        if ( (abs(col.rr-backcolor.rr)<3)&&(abs(col.gg-backcolor.gg)<3)&&(abs(col.bb-backcolor.bb)<3) )
-         col = backmask[x][y];
+         col = backmask[x][ybuff];
 
      //Si applique le masque du cadre ?
      if (lisere != 0)
-       if ((cadremask[x][y].rr>3)||(cadremask[x][y].gg>3)||(cadremask[x][y].bb>3))
-         col = cadremask[x][y];
+       if ((cadremask[x][ybuff].rr)||(cadremask[x][ybuff].gg)||(cadremask[x][ybuff].bb))
+         col = cadremask[x][ybuff];
      
      //Paint canvas avec DECALAGE Y de screenH
-     canv->SetPixel(x, y-screenH, col.rr, col.gg, col.bb);
+     canv->SetPixel(x, y, col.rr, col.gg, col.bb);
    }
  }
  //Applique les modif
@@ -365,7 +368,7 @@ void Rotate(RGBMatrix *matx, FrameCanvas *canvas, short nb, short sens) {
  const float deg_to_rad = 2 * 3.14159265 / 360;
  float rot_x, rot_y;
  float ang, cx, cy;
- short x, y, nx, ny;
+ short x, y, nx, ny, nbrot;
  //buffer carré pour rotation complete
  pixcol buff2[screenW][screenW];
  //image d'origine pour recalcul sans distorsions (effets)
@@ -381,9 +384,9 @@ void Rotate(RGBMatrix *matx, FrameCanvas *canvas, short nb, short sens) {
  }
 
  //commence rotation
- for (short nbrot=0; nbrot<nb; nbrot++) {
+ for (nbrot=0; nbrot<nb; nbrot++) {
    if (sens==0) {
-     nbrot *= 1.1;
+     nbrot *= 1.05;
      ang = (float)nbrot * deg_to_rad;
    }
    else ang = (float)nbrot * deg_to_rad * sens;
@@ -418,8 +421,6 @@ void Rotate(RGBMatrix *matx, FrameCanvas *canvas, short nb, short sens) {
  for (x = 0; x < screenW; ++x) {
    for (y = screenH; y < screenH+screenH; ++y) buff[x][y] = buff0[x][y];
  }
- Fresh(matx, canvas);
- usleep(2000);
 }
 //-----------------------------------------------------------------------
 //Fait une rotation du buff de ang degrés (sens=1 ou -1)(sens=0 effet acceleration)
@@ -728,31 +729,22 @@ short col;
 //-----------------------------------------------------------------------
 //BLINK - Fait clignoter que le Texte Inkcolor (n = fois)
 void Blink(RGBMatrix *matx, FrameCanvas *canv, short nb) {
-unsigned short x, y, nn, delta;
-short a0=inkcolor.rr;
-short b0=inkcolor.gg;
-short c0=inkcolor.bb;
-pixcol buff0[screenW][screenH];
+unsigned short x, y, nn;
+pixcol buff0[screenW][ymax_buff];
  //sauve l'écran
  for (x=0; x<screenW; x++) {
-   for (y=screenH; y<screenH+screenH; y++)
+   for (y=0; y<ymax_buff; y++)
      //Ecrit couleur du pixel
      buff0[x][y] = buff[x][y];
  }
 
  //Debut du clignotement
  for (nn=0; nn<nb ; nn++) {
+
    for (x=0; x<screenW; x++) {
-     for (y=screenH; y<screenH+screenH; y++) {
-       //Test si Substitution Couleur INK ?
-       delta = abs(a0-buff[x][y].rr)+abs(b0-buff[x][y].gg)+abs(c0-buff[x][y].bb);
-       if (delta < 9) {
-         //Ecrit couleur du pixel
-         buff[x][y].rr = 2+backcolor.rr;
-         buff[x][y].gg = 2+backcolor.gg;
-         buff[x][y].bb = 2+backcolor.bb;
-       }
-     }
+     for (y=0; y<ymax_buff; y++)
+       //Ecrit couleur du pixel
+       buff[x][y] = backcolor;
    }
    //Recopie portion du buff a afficher dans off_canvas
    Fresh(matx, canv);
@@ -761,14 +753,15 @@ pixcol buff0[screenW][screenH];
    
    //Remet la couleur Ink d'origine
    for (x=0; x<screenW; x++) {
-     for (y=screenH; y<screenH+screenH; y++)
+     for (y=0; y<ymax_buff; y++)
        //Re Ecrit couleur du pixel
        buff[x][y] = buff0[x][y];
    }
+
   //Recopie portion du buff a afficher dans off_canvas
   Fresh(matx, canv);
   //Réglage de SPEED
-  usleep(speed*8000);
+  usleep(speed*12000);
  }
 }
 //-----------------------------------------------------------------------
@@ -1105,18 +1098,36 @@ short q,r;
   return('\0');
 }
 //-----------------------------------------------------------------------
+//Lecture du texte complet à afficher
+void getMsg(const char fname[128]) {
+FILE *fp;
+char *line;
+size_t len=0;
+ssize_t read;
+
+ fp=fopen(fname,"r");
+ if (fp!=NULL) {
+   while ((read = getline(&line,&len,fp))!=-1) {
+     //teste presence de cmdname dans la ligne
+     strcat(msg, line);
+   }
+   fclose(fp);
+ }
+}
+//-----------------------------------------------------------------------
 void ImgPaint(RGBMatrix *matrix, FrameCanvas *canv, char *para, short scaling) {
 char file[128];
 std::vector<Magick::Image> img0, imgs;
-uint32_t delai_us=100*speed;        
-
+uint32_t delai_us=100*speed;
+short cy=0;   // recentrage en y si imgH grande
+  
   //construit le nom du fichier
   strcpy(file, "../images/");
   strcat(file, para);
   if ( !file_exist(file) ) return;
-
+  
   readImages(&img0, file);
-
+  
   //Test si Gif-animé ?
   if (img0.size()>1) {
      //GIF animé - mise au propre
@@ -1127,8 +1138,10 @@ uint32_t delai_us=100*speed;
         //scaling sur la Largeur=écran
         if (scaling & 2) {
            short nh=(screenW * imgs[w].rows()) / imgs[w].columns();
-           short dy=(nh>screenH)?(nh-screenH):0;
-           imgs[w].scale(Geometry(screenW,nh,0,dy));
+           short ny=(nh>screenH)?(nh-screenH):0;
+           imgs[w].scale(Geometry(screenW,nh,0,ny));
+           //recentrage image en y si imgH > screenH
+           if (nh > screenH) cy=(nh - screenH)/2;
         }
         //scaling sur la hauteur=écran
         if (scaling & 4) {
@@ -1137,15 +1150,14 @@ uint32_t delai_us=100*speed;
         delai_us = 10000*imgs[w].animationDelay();
 
         //copie l'image
-        ImgtoBuff(imgs[w], 0, 0, wrx_ptr, wry_ptr, solid);
+        ImgtoBuff(imgs[w], 0, cy, wrx_ptr, wry_ptr, solid);
 
         //Recopie portion du buff a afficher dans off_canvas
         Fresh(matrix, canv);   
         //SPEED selon le gifanim
         usleep(delai_us);
      }
-     //Test si va vers la droite dans 'buff'
-     if (scaling & 8) wrx_ptr += imgs[0].columns();
+
   }
   else {
      //Image simple - copie que si pas au bout du buff
@@ -1161,8 +1173,88 @@ uint32_t delai_us=100*speed;
      }
      //copie l'image
      ImgtoBuff(img0[0], 0, 0, wrx_ptr, wry_ptr, solid);
-     //Test si va vers la droite dans 'buff'
-     if (scaling & 8) wrx_ptr += img0[0].columns();
+  }
+
+  //Va vers la droite dans 'buff'
+  wrx_ptr += imgs[0].columns();
+}
+//-----------------------------------------------------------------------
+//Acchiche le car dans buff[] et avance le curseur
+//Tiens compte transparence, fonte...
+void PrintChar(char car) {
+unsigned short delta, x, y;
+uint8_t xr,xg,xb;
+//pour eviter dentelures apres resize des chars)
+//ecart de couleur entre back/ink (rgb cumulé)
+const short DELTACOL = 230;
+//nom d'un fich de char
+char filename[128];
+Magick::Image img;
+  
+  //Remplace le "€" en vrai ascii par le code 0x7F !!!
+  if ((int)car==226) car=(char)0x7f;
+  
+  //une seule lettre à afficher
+  strcpy(filename, "../fonts/");
+  strcat(filename, font);
+  strcat(filename, "/");
+  strcat(filename, BytetoHex((int)car));
+  strcat(filename,".gif");
+
+  if ( file_exist(filename) ) {
+    img.read(filename);
+    //Rescale eventuel à Fontsize (si fontsize est redéfini)
+    if (fontsize!=0) {
+       short nw=(img.columns()*fontsize)/img.rows();
+       img.scale(Geometry(nw, fontsize, 0, 0));
+    }
+    //recopie que si pas au bout du buff
+    if (wrx_ptr+img.columns() < xmax_buff) {
+      for (x = 0; x < img.columns(); ++x) {
+       for (y = 0; y < img.rows(); ++y) {
+         const Magick::Color &c = img.pixelColor(x, y);
+         
+         //xr,g,b couleur de la lettre de base
+         xr = ScaleQuantumToChar(c.redQuantum());
+         xg = ScaleQuantumToChar(c.greenQuantum());
+         xb = ScaleQuantumToChar(c.blueQuantum());
+         
+         if (solid > 0) {
+           //Test si changement de Couleur fond ?
+           delta = abs(xr-backcolor0.rr)+abs(xg-backcolor0.gg)+abs(xb-backcolor0.bb);
+           if (delta > DELTACOL) {
+             xr=inkcolor.rr; xg=inkcolor.gg; xb=inkcolor.bb;
+           }
+           else {
+             //Sinon Couleur fond (bloque texte à 2 couleurs)
+             xr=backcolor.rr; xg=backcolor.gg; xb=backcolor.bb;
+           }
+           //Ecrit couleur du pixel
+           short nx = x+wrx_ptr+crenage;
+           short ny = y+wry_ptr;
+           buff[nx][ny].rr = xr;
+           buff[nx][ny].gg = xg;
+           buff[nx][ny].bb = xb;
+         }
+         else {
+           //mode transparent opaque=0
+           short nx = x+wrx_ptr + crenage;
+           short ny = y+wry_ptr;
+           delta = abs(xr-backcolor0.rr)+abs(xg-backcolor0.gg)+abs(xb-backcolor0.bb);
+           //on est pas sur fond de caractere ?
+           if (delta > DELTACOL) {
+             //Sinon Couleur INK (bloque texte à 2 couleurs)
+             xr=inkcolor.rr; xg=inkcolor.gg; xb=inkcolor.bb;
+             buff[nx][ny].rr = xr;
+             buff[nx][ny].gg = xg;
+             buff[nx][ny].bb = xb;
+           }
+         }
+       }
+      }
+    }
+    //va vers la droite dans 'buff'
+    wrx_ptr += img.columns()+crenage;
   }
 }
 //-----------------------------------------------------------------------
@@ -1179,16 +1271,8 @@ int main(int argc, char *argv[]) {
  //nom d'un fich de char
  char filename[128];
  Magick::Image img;
- //ecart de couleur entre back/ink (rgb cumulé)
- //pour eviter dentelures apres resize des chars)
- const short DELTACOL = 230;
 
   srand(time(NULL));
-
- time_t rtime;
- time(&rtime);
- struct tm *infotime = localtime(&rtime);
- printf("hr:mm= %d %d\n\n", infotime->tm_hour,infotime->tm_min);
 
   if (!rgb_matrix::ParseOptionsFromFlags(&argc,&argv,&matrix_options, &runtime_opt)) {
     return usage(argv[0]);
@@ -1256,7 +1340,7 @@ int main(int argc, char *argv[]) {
   printf("Fonte = %s\n\n", font);
 
   //Lecture du Message complet à afficher
-  strcpy(msg,getINI("message.txt", "msg")); 
+  getMsg("message.txt"); 
   printf("Texte = %s\n\n",msg);
  
  //Pointeur de dessin dans le buffer 'buff'
@@ -1270,7 +1354,6 @@ int main(int argc, char *argv[]) {
  //Ptr du texte 
  msg_ptr=0;
  
-
  //Vitesse de défilement (0=à fond, 100=maxi très lent)
  speed = 25;
  
@@ -1280,7 +1363,7 @@ int main(int argc, char *argv[]) {
  //...................................................
  while (!interrupt_received ) {
     
-   //vas chercher next char/cmd si pas en cours de slowing
+   //vas chercher next affchar/cmd
    getcmd();
    
    //Sort si fin de texte  
@@ -1288,74 +1371,8 @@ int main(int argc, char *argv[]) {
 
    // Lit Une lettre seule (font\xxx.gif) de affchar
    if ( (strlen(cmd)==0) && (affchar!='\0') ) {
-     //Remplace le "€" en vrai ascii par le code 0x7F !!!
-     if ((int)affchar==226) affchar=(char)0x7f;
-
-     //une seule lettre à afficher
-     strcpy(filename, "../fonts/");
-     strcat(filename, font);
-     strcat(filename, "/");
-     strcat(filename, BytetoHex((int)affchar));
-     strcat(filename,".gif");
-
-     if ( file_exist(filename) ) {
-       img.read(filename);
-       //Rescale eventuel à Fontsize (si fontsize est redéfini)
-       if (fontsize!=0) {
-         short nw=(img.columns()*fontsize)/img.rows();
-         img.scale(Geometry(nw, fontsize, 0, 0));
-       }
-       //recopie que si pas au bout du buff
-       if (wrx_ptr+img.columns() < xmax_buff) {
-        for (x = 0; x < img.columns(); ++x) {
-         for (y = 0; y < img.rows(); ++y) {
-           uint8_t xr,xg,xb;
-           short delta;
-           const Magick::Color &c = img.pixelColor(x, y);
-           
-           //xr,g,b couleur de la lettre de base
-           xr = ScaleQuantumToChar(c.redQuantum());
-           xg = ScaleQuantumToChar(c.greenQuantum());
-           xb = ScaleQuantumToChar(c.blueQuantum());
-           
-           if (solid > 0) {
-             //Test si changement de Couleur fond ?
-             delta = abs(xr-backcolor0.rr)+abs(xg-backcolor0.gg)+abs(xb-backcolor0.bb);
-             if (delta > DELTACOL) {
-               xr=inkcolor.rr; xg=inkcolor.gg; xb=inkcolor.bb;
-             }
-             else {
-               //Sinon Couleur fond (bloque texte à 2 couleurs)
-               xr=backcolor.rr; xg=backcolor.gg; xb=backcolor.bb;
-             }
-             //Ecrit couleur du pixel
-             short nx = x+wrx_ptr+crenage;
-             short ny = y+wry_ptr;
-             buff[nx][ny].rr = xr;
-             buff[nx][ny].gg = xg;
-             buff[nx][ny].bb = xb;
-           }
-           else {
-             //mode transparent opaque=0
-             short nx = x+wrx_ptr + crenage;
-             short ny = y+wry_ptr;
-             delta = abs(xr-backcolor0.rr)+abs(xg-backcolor0.gg)+abs(xb-backcolor0.bb);
-             //on est pas sur fond de caractere ?
-             if (delta > DELTACOL) {
-               //Sinon Couleur INK (bloque texte à 2 couleurs)
-               xr=inkcolor.rr; xg=inkcolor.gg; xb=inkcolor.bb;
-               buff[nx][ny].rr = xr;
-               buff[nx][ny].gg = xg;
-               buff[nx][ny].bb = xb;
-             }
-           }
-         }
-        }
-       }
-       //va vers la droite dans 'buff'
-       wrx_ptr += img.columns()+crenage;
-     }
-   } 
+     PrintChar(affchar);
+   }
    //sinon une commande a traiter
    else {
        //========= BLUR:n = fait un flou progressif (speed = n)
@@ -1457,9 +1474,7 @@ int main(int argc, char *argv[]) {
        }
        //========= FONTSIZE:n = change Taille de Fonte (rescale la hauteur +/-)
        if (!strcmp(cmd,"FONTSIZE")) {
-         strcpy(font, cmdparam);
-         fontsize = (atoi(cmdparam)>8)?atoi(cmdparam):64;
-         //printf("fonte= %s\n",font);
+         fontsize = (atoi(cmdparam)>8)?atoi(cmdparam):0;
        }
        //--------- IMG: Affiche une image (images/xxx.xxx)
        if (!strcmp(cmd,"IMG")) {
@@ -1472,18 +1487,6 @@ int main(int argc, char *argv[]) {
        //--------- IMGH: Affiche une image rescalée sur Screen Height (images/xxx.xxx)
        if (!strcmp(cmd,"IMGH")) {
           ImgPaint(matrix, off_canvas, cmdparam, 4);
-       }
-       //--------- IMG+: Affiche une image (images/xxx.xxx) + curseur droite
-       if (!strcmp(cmd,"IMG+")) {
-          ImgPaint(matrix, off_canvas, cmdparam, 0+8);
-       }
-       //--------- IMGW+: Affiche une image rescalée sur ScreenW  + curseur droite
-       if (!strcmp(cmd,"IMGW+")) {
-          ImgPaint(matrix, off_canvas, cmdparam, 2+8);
-       }
-       //--------- IMGH+: Affiche une image rescalée sur ScreenH  + curseur droite
-       if (!strcmp(cmd,"IMGH+")) {
-          ImgPaint(matrix, off_canvas, cmdparam, 4+8);
        }
        //--------- IMGSWP: Aff une image > écran en faisant un balayage (images/xxx.xxx)
        if (!strcmp(cmd,"IMGSWP")) {
@@ -1565,7 +1568,7 @@ int main(int argc, char *argv[]) {
        }
        //========= ROTSPEED:n = Rotation de + en + rapide
        if (!strcmp(cmd,"ROTSPEED")) {
-         Rotate(matrix, off_canvas, atoi(cmdparam)*360, 0);
+         Rotate(matrix, off_canvas, atoi(cmdparam), 0);
        }
        //========= SETX:n = fixe le pointeur X ecriture en pixel
        if (!strcmp(cmd,"SETX")) {
@@ -1592,7 +1595,7 @@ int main(int argc, char *argv[]) {
        //========= SPEED:n = vitesse de 0 (à fond) à 250 très lent
        if (!strcmp(cmd,"SPEED")) {
          speed =atoi(cmdparam);
-         speed = (speed>200)?20:speed;
+         speed = (speed>250)?250:speed;
          //printf("speed= %d\n",speed);
        }
        //--------- SPLASH1: Barbouille l'écran avec une Image au hasard (images/xxx.xxx)
@@ -1606,6 +1609,23 @@ int main(int argc, char *argv[]) {
          strcpy(filename, "../images/");
          strcat(filename,cmdparam);
          if ( file_exist(filename) ) Splash2(matrix, off_canvas, filename);
+       }
+       //========= STEP:n = pas de scroll left (=1)
+       if (!strcmp(cmd,"STEP")) {
+         step =atoi(cmdparam);
+         step = (step>5)?5:step;
+         //printf("step= %d\n",step);
+       }
+       //========= TIME:n = Affiche l'heure hh:mm
+       if (!strcmp(cmd,"TIME")) {
+         char heure[256];
+         struct timespec next_time;
+         next_time.tv_sec = time(NULL);
+         struct tm tm;
+         localtime_r(&next_time.tv_sec, &tm);
+         strftime(heure, sizeof(heure), "%H:%M", &tm);
+         for (x=0; heure[x]!='\0'; x++)
+            PrintChar( heure[x] );
        }
        //========= TWIRL:n = Effet de Tourbillon de l'image complete (n degres)
        if (!strcmp(cmd,"TWIRL")) {
@@ -1625,13 +1645,13 @@ int main(int argc, char *argv[]) {
   if ( fixe==0 ) {
     while ( wrx_ptr > screenW ) {     
       //Réglage de SPEED
-      usleep(speed * 500);
+      usleep(speed * 100);
       //scroll buff
-      Scroll_Left(1);
+      Scroll_Left(step);
       //MAJ le buff a afficher dans off_canvas
       Fresh(matrix, off_canvas);
       //wrx_ptr à gauche le write ptr
-      wrx_ptr--;
+      wrx_ptr -= step;
       //Si ralenti (SLOW) avant stop
       if (slowing>0) {
         slowing--;
