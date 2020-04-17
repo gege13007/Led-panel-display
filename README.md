@@ -101,6 +101,8 @@ Here is the syntax of all available commands :
 
 <STEP:n> It's possible to modify the step (default 1) of pixel cols for each left scroll.
 
+<TIME:x> display the hour hh:mm (may be later more options)
+
 <TWIRL:ang> Twirl rotation effect (ang degrees).
 
 <UP:n> Scroll up gradually the screen of n pixels.
@@ -246,6 +248,8 @@ Et voici la liste des fonctions déjà réalisées :
 <SPLASH1:file> Remplit tout l'écran avec un motif (file) au hasard.
 
 <SPLASH2:file> Remplit tout l'écran avec un motif (file) en balayage horizontal.
+
+<TIME:x> Affiche l'heure 'hh:mm' courant de votre PI.
 
 <TWIRL:ang> Effet de rotation en Tourbillon déformant sur l'écran de ang degrés.
 
