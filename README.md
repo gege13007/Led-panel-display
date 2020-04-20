@@ -15,7 +15,8 @@ The panel may use 2 differents kinds of color masks, one buffer for the colored 
 
 Here's a file example 'message.txt' :
 ```
-<CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<INK:22ff22>5€<PAUSE:1><PIXELISE:10><IMGFITW:pizza2.jpg><PAUSE:1>
+<CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<INK:22ff22>5€<PAUSE:1><PIXELISE:10>
+<IMGFITW:pizza2.jpg><PAUSE:1>
 <EXPLODE:5><RESET:0>
 ```
 Here is the syntax of all available commands :
@@ -32,7 +33,8 @@ Here is the syntax of all available commands :
 
 <CLEAR:n> Clear the screen (set to BackColor). If n=0 the cursor position is reset to the left.
 
-<CRENAGE:n> modify the character spacing +/- in pixels (-2 => draw 2 pixels on the left). It could be better to do SOLID=0. Transparency will avoid than the background color erase the previous character.
+<CRENAGE:n> modify the character spacing +/- in pixels (-2 => draw 2 pixels on the left). It could be better to do SOLID=0.
+Transparency will avoid than the background color erase the previous character.
 
 <DIVIDE:s> Effect of spliting the screen in two scrolling parts. Fill the center with Backcolor (s=speed)
 
@@ -66,7 +68,8 @@ Here is the syntax of all available commands :
 
 <LEFT:n> Scroll gradually the screen on the Left (n pixels).
 
-<LOOP:n> If n>1 set back the text pointer to the previous <DO:>, and loops n times (if n=0 cause a never end loop). Useful to repeat a Gifanim or a portion of text.
+<LOOP:n> If n>1 set back the text pointer to the previous <DO:>, and loops n times (if n=0 cause a never end loop).
+Useful to repeat a Gifanim or a portion of text.
 
 <PAUSE:n> Pause n seconds.
 
@@ -86,7 +89,8 @@ Here is the syntax of all available commands :
 
 <ROTSPEED:ang> Accelerating rotation effect of ang degrees.
 
-<SETX:n> (et <SETY:n>) Set the writing pointer position in pixels on the screen (X=n or Y=n). The initial top Y position on the buffer is not 0 but screenH.
+<SETX:n> (et <SETY:n>) Set the writing pointer position in pixels on the screen (X=n or Y=n).
+The initial top Y position on the buffer is not 0 but screenH.
 
 <SHAKE:n> Shaking effect (n times)
 
@@ -166,7 +170,8 @@ Comme en xml, chaque commande est sous la forme : <FONCTION : paramètre>
 
 Voici ce qu'il peut y avoir dans le fichier 'message.txt' :
 ```
-<CLEAR:0><SOLID:0><INK:c00000><CADRE:1><FONT:comic48><CRENAGE:-3>Essai de texte rouge<PAUSE:1><PIXELISE:10><IMGH:pizza.jpg><PAUSE:1>
+<CLEAR:0><SOLID:0><INK:c00000><CADRE:1><FONT:comic48><CRENAGE:-3>Essai de texte rouge<PAUSE:1><PIXELISE:10>
+<IMGH:pizza.jpg><PAUSE:1>
 <EXPLODE:5><RESET:0>
 ```
 Et voici la liste des fonctions déjà réalisées :
@@ -179,7 +184,8 @@ Et voici la liste des fonctions déjà réalisées :
 
 <BLINK:n> fait clignoter l'écran (n fois)
 
-<CADRE:n> dessine un liseré (cadre) d'épaisseur n pixel. Un cadre est fixe, permanent et affiché en premier plan, jusqu'à ce qu'on fasse <CADRE:0>. La couleur du cadre est la valeur INKCOLOR au moment de la commande.
+<CADRE:n> dessine un liseré (cadre) d'épaisseur n pixel. Un cadre est fixe, permanent et affiché en premier plan,
+jusqu'à ce qu'on fasse <CADRE:0>. La couleur du cadre est la valeur INKCOLOR au moment de la commande.
 
 <CLEAR:n> Effacement de l'écran (à BackColor). Si n=0 le pointeur d'écriture revient à gauche.
 
@@ -203,7 +209,8 @@ Et voici la liste des fonctions déjà réalisées :
 
 <FONTSIZE:n> Permet de resizer la fonte en cours. Donne la nouvelle hauteur en pixels. Attention : opération calcul de resize en plus à chaque affichage de caractère.
 
-<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence. Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée. A chaque dessin d'une image le curseur en X est avancé.
+<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence.
+Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée. A chaque dessin d'une image le curseur en X est avancé.
 
 <IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Gifs animés compris. Une image qui dépasse l'écran en hauteur est recentrée en Y.
 
@@ -237,7 +244,8 @@ Et voici la liste des fonctions déjà réalisées :
 
 <ROTSPEED:ang> Effet de rotation en Accélèration de ang degrés.
 
-<SETX:n> (et <SETY:n>) Positionne le pointeur d'écriture en X=n ou Y=n. En Y, le buffer d'écran garde une marge de une hauteur d'écran en haut et en bas. Le coin haut/gauche est donc à 0/screenH.
+<SETX:n> (et <SETY:n>) Positionne le pointeur d'écriture en X=n ou Y=n. En Y, le buffer d'écran garde une marge de
+une hauteur d'écran en haut et en bas. Le coin haut/gauche est donc à 0/screenH.
 
 <SHAKE:n> Effet de tremblements (n fois)
 
