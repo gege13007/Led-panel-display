@@ -14,10 +14,10 @@ Like with xml tags, each command must be written like this : <FONCTION : paramet
 The panel may use 2 differents kinds of color masks, one buffer for the colored border line, another buffer for a backgroud picture.
 
 Here's a file example 'message.txt' :
-
+```
 <CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<INK:22ff22>5€<PAUSE:1><PIXELISE:10><IMGFITW:pizza2.jpg><PAUSE:1>
 <EXPLODE:5><RESET:0>
-
+```
 Here is the syntax of all available commands :
 ```
 <BLUR:s> display a blurring effect on all screen to the black color (s=speed)
@@ -116,8 +116,8 @@ The Pharmacy https://youtu.be/Q5C9POoyG7s
 
 Example for pizzerias https://youtu.be/pKHV1Pjuo2M 
 
-WHAT TO DO ?
-============
+WHAT'S LEFT TO DO ?
+=================
 - writing at 90° ?
 - accept complex ascii codes ?
 
@@ -164,11 +164,11 @@ Comme en xml, chaque commande est sous la forme : <FONCTION : paramètre>
    
 (Si le ':' ou le '>' sont omis, la commande n'est pas valide et les caractères affichés).
 
-Voici ce que cela peut donner dans 'message.txt' :
-
-<CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<INK:22ff22>5€<PAUSE:1><PIXELISE:10><IMGFITW:pizza2.jpg><PAUSE:1>
+Voici ce qu'il peut y avoir dans le fichier 'message.txt' :
+```
+<CLEAR:0><SOLID:0><INK:c00000><CADRE:1><FONT:comic48><CRENAGE:-3>Essai de texte rouge<PAUSE:1><PIXELISE:10><IMGH:pizza.jpg><PAUSE:1>
 <EXPLODE:5><RESET:0>
-
+```
 Et voici la liste des fonctions déjà réalisées :
 ```
 <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
