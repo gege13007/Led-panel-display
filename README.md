@@ -19,7 +19,7 @@ Here's a file example 'message.txt' :
 <EXPLODE:5><RESET:0>
 
 Here is the syntax of all available commands :
-
+```
 <BLUR:s> display a blurring effect on all screen to the black color (s=speed)
 
 <BACK:rrggbb> set backcolor for the next chars to display (rrggbb in hexa). The last specified backcolor is used in some special trabsparency effects.
@@ -109,7 +109,7 @@ Here is the syntax of all available commands :
 <UP:n> Scroll up gradually the screen of n pixels.
 
 <VIDEO:file> Displays a video file (resize to fill the screen).
-
+```
 SOME DEMOS VIDEOS
 =================
 The Pharmacy https://youtu.be/Q5C9POoyG7s 
@@ -131,13 +131,14 @@ sudo ./panelviewer
 
 As described by hzeller, use the option --led-no-hardware-pulse if your PI sound is active (or set 'dtparam-audio=off' in the file /boot/config.txt).  On a Pi3B+ you can add --led--slowdown-gpio=2 to avoid some glitches).
 
-The file 'panel-config.txt' allows you to set some default display parameters. Some of them overload the initial inline options commands of  hzeller : 
+The file 'panel-config.txt' allows you to set some default display parameters. Some of them overload the initial inline options commands of  hzeller :
+```
 * fonte = font name to use (must match to the font directory)
 * led-chain = number of matrix for one chain GPIO (défaut 1)
 * led-parallel = number of parallel chains in GPIO (défaut 1)
 * led-rows = number of lines in one led matrix (default 32)
 * led-cols = number of columns in one led matrix (default 32)
-
+```
 LIMITATIONS
 ===========
 The prototype 160*64 pixels screen you can see on my videos run on a simple PI 3B+ in Raspbian windows mode. This is a quite speed cpu wich runs well with various effects, two parallel chains of 5 matrix. But it seems raisonable to set the maximum buffer size to an array of 512*512 in the code. A squarre is better for rotations effets...
@@ -169,7 +170,7 @@ Voici ce que cela peut donner dans 'message.txt' :
 <EXPLODE:5><RESET:0>
 
 Et voici la liste des fonctions déjà réalisées :
-
+```
 <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
 
 <BACK:rrggbb> définit la couleur de fond (rrggbb en hexa).C'est la dernière couleur de fond définie qui est utilisée avec les effets.
@@ -259,7 +260,7 @@ Et voici la liste des fonctions déjà réalisées :
 <UP:n> Shifte l'écran n pixels vers le haut.
 
 <VIDEO:file> Affiche un clip vidéos (mp4 ou compatible). Ajuste à la taille de l'écran.
-
+```
 EXEMPLES VIDEOS DEMOS
 =====================
 La pharmacie https://youtu.be/Q5C9POoyG7s 
@@ -279,12 +280,13 @@ Faire sudo ./panelviewer
 (sur une carte Pi3B+ ajouter --led--slowdown-gpio=2 pour éviter certains parasites).
 
 Le fichier 'panel-config.txt' contient certains paramètres par défaut chargés au démarrage, et qui peuvent remplacer les paramètres en-ligne initiaux du système créé par HZeller : 
+```
 * fonte = nom de la fonte au démarrage (correspond au nom de dossier)
 * led-chain = nb de matrices en série par ligne de commande GPIO paramètre (défaut 1)
 * led-parallel = nb de lignes GPIO en parallèle (défaut 1)
 * led-rows = nb de lignes de leds par carreau (défaut 32)
 * led-cols = nb de colonnes de leds par carreau (défaut 32)
-
+```
 LIMITATIONS
 ===========
 Le proto toune sur une carte PI 3b+ (donc assez rapide) avec un écran de 160*64 pixels (5*32 / 2*32), piloté sur deux lignes parallèles. La vitesse est suffisante dans ce cas, veci dit il m'a paru raisonnable de limiter le buffer à une taille max de 512*512 en dur dans le programme. Une taille carrée est utile pour la rotation d'image...
