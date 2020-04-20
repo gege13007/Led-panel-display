@@ -16,24 +16,25 @@ The panel may use 2 differents kinds of color masks, one buffer for the colored 
 Here's a file example 'message.txt' :
 ```
 <CLEAR:0><SOLID:0><INK:c0c0c0><CADRE:1><FONT:comic48><CRENAGE:-5>Pizza<INK:22ff22>5€<PAUSE:1><PIXELISE:10>
-<IMGFITW:pizza2.jpg><PAUSE:1>
-<EXPLODE:5><RESET:0>
+<IMGFITW:pizza2.jpg><PAUSE:1><EXPLODE:5><RESET:0>
 ```
 Here is the syntax of all available commands :
 ```
 <BLUR:s> display a blurring effect on all screen to the black color (s=speed)
 
-<BACK:rrggbb> set backcolor for the next chars to display (rrggbb in hexa). The last specified backcolor is used in some special trabsparency effects.
+<BACK:rrggbb> set backcolor for the next chars to display (rrggbb in hexa). The last specified backcolor is used in
+some special trabsparency effects.
 
 <BACKGRD:file> set a fixed background picture. Could be cancelled with <BACKGRD:>
 
 <BLINK:n> do n times blinking the text.
 
-<CADRE:n> draw a small rectangle on the borders of the screen (thickness = n pixel). The rectangle is fix and always on the foreground, until you do <CADRE:0>. The border color is the last value of INKCOLOR.
+<CADRE:n> draw a small rectangle on the borders of the screen (thickness = n pixel). The rectangle is fix and
+always on the foreground, until you do <CADRE:0>. The border color is the last value of INKCOLOR.
 
 <CLEAR:n> Clear the screen (set to BackColor). If n=0 the cursor position is reset to the left.
 
-<CRENAGE:n> modify the character spacing +/- in pixels (-2 => draw 2 pixels on the left). It could be better to do SOLID=0.
+<CRENAGE:n> modify the character spacing +/- in pixels (-2 => draw 2 pixels on the left). It's better with SOLID=0.
 Transparency will avoid than the background color erase the previous character.
 
 <DIVIDE:s> Effect of spliting the screen in two scrolling parts. Fill the center with Backcolor (s=speed)
@@ -46,7 +47,8 @@ Transparency will avoid than the background color erase the previous character.
 
 <FADE:s> fade out the screen to a black background (s=speed)
 
-<FIXE:n> Set the fixed mode when =1. So there is no more left scrolling. It's up to you to move the chars. The chars written out of the screen (right) could be lost or invisible. Default is 0 (auto-scroll to the left).
+<FIXE:n> Set the fixed mode when =1. So there is no more left scrolling. It's up to you to move the chars.
+The chars written out of the screen (right) could be lost or invisible. Default is 0 (auto-scroll to the left).
 
 <FONDU:file> Draw a picture with a fade-out transition effect (don't resize).
 
@@ -54,13 +56,18 @@ Transparency will avoid than the background color erase the previous character.
 
 <FONTSIZE:n> Set the new font height to use for text. This cause resizing operation for all characters to display.
 
-<IMG:file> Draw the picture 'file' to the current position (don't resize). Display animated Gifs. When SOLID=0, the backcolor could be transparent. Move the cursor position.
+<IMG:file> Draw the picture 'file' to the current position (don't resize). Display animated Gifs.
+When SOLID=0, the backcolor could be transparent. Move the cursor position.
 
-<IMGW:file> Draw the picture 'file' to the current position. Resize to fit screen width. Display animated Gifs. When SOLID=0, the backcolor could be transparent. Move the cursor position. When the height is bigger than screen, the picture is moved to the center.
+<IMGW:file> Draw the picture 'file' to the current position. Resize to fit screen width. Display animated Gifs.
+When SOLID=0, the backcolor could be transparent. Move the cursor position.
+When the height is bigger than screen, the picture is moved to the center.
 
-<IMGH:file>  Draw the picture 'file' to the current position. Resize to fit screen Height. Display animated Gifs. When SOLID=0, the backcolor could be transparent. Move the cursor position.
+<IMGH:file>  Draw the picture 'file' to the current position. Resize to fit screen Height.
+Display animated Gifs. When SOLID=0, the backcolor could be transparent. Move the cursor position.
 
-<IMGSWPUP:file><IMGSWPDWN:file> Useful to draw a Big picture 'file' (no gifanim) without resizing operation. Do a visual travelling  effect down/up to show all parts of the picture on a small screen.
+<IMGSWPUP:file><IMGSWPDWN:file> Useful to draw a Big picture 'file' (no gifanim) without resizing operation.
+Do a visual travelling  effect down/up to show all parts of the picture on a small screen.
 
 <INK:rrggbb> Set the Inkcolor (rrggbb hexadecimal values). Some effects use the last used Inkcolor.
 
@@ -178,7 +185,8 @@ Et voici la liste des fonctions déjà réalisées :
 ```
 <BLUR:s> fait un effet de flou progressif vers le noir sur l'écran (x=vitesse)
 
-<BACK:rrggbb> définit la couleur de fond (rrggbb en hexa).C'est la dernière couleur de fond définie qui est utilisée avec les effets.
+<BACK:rrggbb> définit la couleur de fond (rrggbb en hexa).
+C'est la dernière couleur de fond définie qui est utilisée avec les effets.
 
 <BACKGRD:file> pour définir une image de fond, fixe et permanente. On peut arreter en faisant <BACKGRD:>
 
@@ -189,7 +197,8 @@ jusqu'à ce qu'on fasse <CADRE:0>. La couleur du cadre est la valeur INKCOLOR au
 
 <CLEAR:n> Effacement de l'écran (à BackColor). Si n=0 le pointeur d'écriture revient à gauche.
 
-<CRENAGE:n> Pour définir un écart +/- pixels entre chaque lettres (-2 pixels plus à gauche). Faire SOLID=0 pour avoir le fond des lettres transparent, sinon une lettre peut effacer la précédente.
+<CRENAGE:n> Pour définir un écart +/- pixels entre chaque lettres (-2 pixels plus à gauche).
+Faire SOLID=0 pour avoir le fond des lettres transparent, sinon une lettre peut effacer la précédente.
 
 <DIVIDE:s> Effet de division en deux de l'écran par le milieu jusqu'à Backcolor (s=vitesse)
 
@@ -201,30 +210,39 @@ jusqu'à ce qu'on fasse <CADRE:0>. La couleur du cadre est la valeur INKCOLOR au
 
 <FADE:s> Assombrit progressivement l'écran jusqu'au fond noir (s=vitesse)
 
-<FIXE:n> Permet de passer en mode fixe (=1 : pas de défilement de l'écran), ou défilant (=0 par défaut vers la gauche). Attention, les caractères trop à droite sont perdus.
+<FIXE:n> Permet de passer en mode fixe (=1 : pas de défilement de l'écran), ou défilant (=0 par défaut a gauche).
+Attention, les caractères trop à droite sont perdus.
 
 <FONDU:file> Affiche une image avec une transition en fondu/enchainé (pas de déformation, peut dépasser de l'écran).
 
 <FONT:txt> Nom du répertoire de la fonte choisie.
 
-<FONTSIZE:n> Permet de resizer la fonte en cours. Donne la nouvelle hauteur en pixels. Attention : opération calcul de resize en plus à chaque affichage de caractère.
+<FONTSIZE:n> Permet de resizer la fonte en cours. Donne la nouvelle hauteur en pixels.
+Attention : opération calcul de resize en plus à chaque affichage de caractère.
 
-<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran). Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence.
-Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée. A chaque dessin d'une image le curseur en X est avancé.
+<IMG:file> Affiche le fichier image au coin haut/gauche (pas de déformation, peut dépasser de l'écran).
+Supporte les Gif animés. Le curseur ne bouge pas. L'affichage des images tient compte de la transparence.
+Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée.
+A chaque dessin d'une image le curseur en X est avancé.
 
-<IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé). Gifs animés compris. Une image qui dépasse l'écran en hauteur est recentrée en Y.
+<IMGW:file> Affiche l'image file en ajustant la largeur à l'écran (ratio H/W conservé).
+Gifs animés compris. Une image qui dépasse l'écran en hauteur est recentrée en Y.
 
 <IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Gifs animés compris.
 
-<IMGSWPUP:file><IMGSWPDWN:file> Affiche une image (pas de gif animé) sans déformation. Si elle dépasse de l'écran, fait un effet de travelling pour un balayage total sur la taille de l'écran (vers le haut ou bas).
+<IMGSWPUP:file><IMGSWPDWN:file> Affiche une image (pas de gif animé) sans déformation.
+Si elle dépasse de l'écran, fait un effet de travelling pour un balayage total sur la
+taille de l'écran (vers le haut ou bas).
 
-<INK:rrggbb> Définit la couleur de l'encre du prochain car. C'est la dernière couleur INK qui est utilisée dans certains effets.
+<INK:rrggbb> Définit la couleur de l'encre du prochain car. C'est la dernière couleur INK qui est
+utilisée dans certains effets.
 
 <INVERT:n> Fait un effet de négatif sur l'écran (n fois).
 
 <LEFT:n> Décale tout l'écran de n pixels à gauche.
 
-<LOOP:n> Si n>1 revient juste après le précédent <DO:>, et reboucle n fois au total. Si n=0 boucle infini. Utile pour répéter une portion de texte ou un Gif animé.
+<LOOP:n> Si n>1 revient juste après le précédent <DO:>, et reboucle n fois au total. Si n=0 boucle infini.
+Utile pour répéter une portion de texte ou un Gif animé.
 
 <PAUSE:n> Pause de n secondes. 
 
@@ -244,8 +262,8 @@ Si SOLID=0 une couleur d'image égale à BACKCOLOR ne sera pas dessinée. A chaq
 
 <ROTSPEED:ang> Effet de rotation en Accélèration de ang degrés.
 
-<SETX:n> (et <SETY:n>) Positionne le pointeur d'écriture en X=n ou Y=n. En Y, le buffer d'écran garde une marge de
-une hauteur d'écran en haut et en bas. Le coin haut/gauche est donc à 0/screenH.
+<SETX:n> (et <SETY:n>) Positionne le pointeur d'écriture en X=n ou Y=n. En Y, le buffer d'écran garde une
+marge de une hauteur d'écran en haut et en bas. Le coin haut/gauche est donc à 0/screenH.
 
 <SHAKE:n> Effet de tremblements (n fois)
 
