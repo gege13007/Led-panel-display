@@ -8,6 +8,7 @@ It's now possible to mix all kind of pictures, with text, scrolling or not...
 I also made 'FontWriter' in VB6 to create my gifs font files for each characters. You just have to choose a font anf size. Enter the first char ascii code (like A) and the last ascii code (like Z). Then 'Ecrire' will create gif char from A to Z. You'll may be need to retouch them with your best drawing software. For now, the panel uses only the 8 bits direct ascii codes of the c langage compiler (from 32 to 128). The 128 code is re-affected to '€' char.
 
 So 'panelviewer' (written in C) allows you to display enriched text (stored in file message.txt) in the same manner than html file. Some special tags allow to specify the ink and back colors, the position and size, and also to do some special transitions and effects.
+It's even possible to show some videos clips in mp4.
 Like with xml tags, each command must be written like this : <FONCTION : parameter>
 (If ':' or '>' are omitted, the command is ignored and displayed like simple text).
 The panel may use 2 differents kinds of color masks, one buffer for the colored border line, another buffer for a backgroud picture.
@@ -57,7 +58,7 @@ Here is the syntax of all available commands :
 
 <IMGH:file>  Draw the picture 'file' to the current position. Resize to fit screen Height. Display animated Gifs. When SOLID=0, the backcolor could be transparent. Move the cursor position.
 
-<IMGSWP:file> Useful to draw a Big picture 'file' (no gifanim) without resizing operation. Do a visual scan effect right/down/left/up to show all parts of the picture on a small screen.
+<IMGSWPUP:file><IMGSWPDWN:file> Useful to draw a Big picture 'file' (no gifanim) without resizing operation. Do a visual travelling  effect down/up to show all parts of the picture on a small screen.
 
 <INK:rrggbb> Set the Inkcolor (rrggbb hexadecimal values). Some effects use the last used Inkcolor.
 
@@ -107,16 +108,16 @@ Here is the syntax of all available commands :
 
 <UP:n> Scroll up gradually the screen of n pixels.
 
+<VIDEO:file> Displays a video file (resize to fill the screen).
+
 SOME DEMOS VIDEOS
 =================
-The Pharmacy https://youtu.be/9tcXBY5XUHY
+The Pharmacy https://youtu.be/Q5C9POoyG7s 
 
-Images & effects https://youtu.be/1gwI9AUk74s 
-
+Example for pizzerias https://youtu.be/pKHV1Pjuo2M 
 
 WHAT TO DO ?
 ============
-- support of video files (in progress).
 - writing at 90° ?
 - accept complex ascii codes ?
 
@@ -128,7 +129,7 @@ Compile panelviewer.cc on you Raspberry PI with hzeller and Magicks++ Graphics d
 make
 sudo ./panelviewer 
 
-As described by hzeller, use the option --led-no-hardware-pulse if your PI sound is active (or set 'dtparam-audio=off' in the file /boot/config.txt).
+As described by hzeller, use the option --led-no-hardware-pulse if your PI sound is active (or set 'dtparam-audio=off' in the file /boot/config.txt).  On a Pi3B+ you can add --led--slowdown-gpio=2 to avoid some glitches).
 
 The file 'panel-config.txt' allows you to set some default display parameters. Some of them overload the initial inline options commands of  hzeller : 
 * fonte = font name to use (must match to the font directory)
@@ -153,7 +154,7 @@ The code uses also the Magick++ library www.imagemagick.org.
 
 PANNEAU A LED RGB PROGRAMMABLE sur Raspberry Pi
 ===============================================
-Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu qu'il étais difficile d'afficher de grosses lettres avec le seul programme d'exemple disponible (fontes bdf pas très commodes...). D'où l'idée de construire un système plus complet permettant de redéfinir des fontes sous formes d'images .gif (ou autres), et de créer une sorte de langage de commande hypertexte comme du html, pour permettre toute sorte d'affichage, de choix des couleurs, d'effets spéciaux, etc...
+Après avoir construit mon panneau lumineux (2 * 5 matrices 32*32 rgb) en utilisant le projet de Henner Zeller (hzeller) que je remercie encore pour son travail, je me suis aperçu qu'il étais difficile d'afficher de grosses lettres avec le seul programme d'exemple disponible (fontes bdf pas très commodes...). D'où l'idée de construire un système plus complet permettant de redéfinir des fontes sous formes d'images .gif (ou autres), et de créer une sorte de langage de commande hypertexte comme du html, pour permettre toute sorte d'affichage, de choix des couleurs, d'effets spéciaux, et même des clips vidéos MP4...
 
 Le programme en VBasic 'FontCreator' permet de vite générer des fichiers Gif pour chaque lettre, en choisissant une police et en balayant d'un code Ascii à un autre. Il n'y a plus qu'à vérifier ou ajuster les gifs avec n'importe quel soft de retouche.
 
@@ -207,7 +208,7 @@ Et voici la liste des fonctions déjà réalisées :
 
 <IMGH:file> Affiche l'image file en ajustant la hauteur à l'écran (ratio H/W conservé). Gifs animés compris.
 
-<IMGSWP:file> Affiche une image (pas de gif animé) sans déformation. Si elle est trop grande, fait un balayage (tournant) de la taille de l'écran.
+<IMGSWPUP:file><IMGSWPDWN:file> Affiche une image (pas de gif animé) sans déformation. Si elle dépasse de l'écran, fait un effet de travelling pour un balayage total sur la taille de l'écran (vers le haut ou bas).
 
 <INK:rrggbb> Définit la couleur de l'encre du prochain car. C'est la dernière couleur INK qui est utilisée dans certains effets.
 
@@ -249,22 +250,25 @@ Et voici la liste des fonctions déjà réalisées :
 
 <SPLASH2:file> Remplit tout l'écran avec un motif (file) en balayage horizontal.
 
+<STEP:n> Permet d'augmenter le pas de scrolling (par défaut =1)
+
 <TIME:x> Affiche l'heure 'hh:mm' courant de votre PI.
 
 <TWIRL:ang> Effet de rotation en Tourbillon déformant sur l'écran de ang degrés.
 
 <UP:n> Shifte l'écran n pixels vers le haut.
 
+<VIDEO:file> Affiche un clip vidéos (mp4 ou compatible). Ajuste à la taille de l'écran.
+
 EXEMPLES VIDEOS DEMOS
 =====================
-La pharmacie https://youtu.be/9tcXBY5XUHY
+La pharmacie https://youtu.be/Q5C9POoyG7s 
 
-Images et effets https://youtu.be/1gwI9AUk74s 
+La pizzeria https://youtu.be/pKHV1Pjuo2M
 
 
 AMELIORATIONS PREVUES
 =====================
-- le support des vidéos.
 - l'écriture à 90° ?
 - codes ascii plus complexes
 
@@ -272,6 +276,7 @@ UTILISATION
 ===========
 Faire sudo ./panelviewer 
 ( ajouter --led-no-hardware-pulse si la sortie son de votre PI est active, ou alors 'dtparam-audio=off' dans /boot/config.txt')
+(sur une carte Pi3B+ ajouter --led--slowdown-gpio=2 pour éviter certains parasites).
 
 Le fichier 'panel-config.txt' contient certains paramètres par défaut chargés au démarrage, et qui peuvent remplacer les paramètres en-ligne initiaux du système créé par HZeller : 
 * fonte = nom de la fonte au démarrage (correspond au nom de dossier)
