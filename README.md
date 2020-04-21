@@ -125,12 +125,32 @@ SOME DEMOS VIDEOS
 =================
 The Pharmacy https://youtu.be/Q5C9POoyG7s 
 
+The virtual Fire place https://youtu.be/asjtAJzzo8o 
+
 Example for pizzerias https://youtu.be/pKHV1Pjuo2M 
 
 WHAT'S LEFT TO DO ?
 =================
+- do more fonts and check existing
+- improve transparency on outline chars...
+- change the coding in displaying images
 - writing at 90° ?
 - accept complex ascii codes ?
+- Test on DietPi.
+
+BUILDING
+========
+Panelviewer use hzeller's RGBMatrix library. You can do :
+```
+git submodule add https://github.com/hzeller/rpi-rgb-led-matrix.git matrix
+```
+You need so the Magick++ image library and libavcodec for video. Make.
+```
+sudo apt-get update
+sudo apt-get install libgraphicsmagick++-dev libwebp-dev -y
+sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
+make panelviewer
+```
 
 HOW TO USE
 ==========
@@ -291,13 +311,32 @@ EXEMPLES VIDEOS DEMOS
 =====================
 La pharmacie https://youtu.be/Q5C9POoyG7s 
 
-La pizzeria https://youtu.be/pKHV1Pjuo2M
+Feu de cheminée virtuel https://youtu.be/asjtAJzzo8o 
 
+La pizzeria https://youtu.be/pKHV1Pjuo2M
 
 AMELIORATIONS PREVUES
 =====================
+- plus de fontes et améliorer existant
+- améliorer transparence contour des cars...
+- changer le codage d'affichage des images
+- Tester DietPi.
 - l'écriture à 90° ?
-- codes ascii plus complexes
+- des codes ascii plus complexes
+
+COMPILATION
+===========
+Panelviewer utilise en premier lieu la librairie RGBMatrix de hzeller
+```
+git submodule add https://github.com/hzeller/rpi-rgb-led-matrix.git matrix
+```
+Vous aurez besoin aussi des librairies images et vidéos.
+```
+sudo apt-get update
+sudo apt-get install libgraphicsmagick++-dev libwebp-dev -y
+sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
+make panelviewer
+```
 
 UTILISATION
 ===========
@@ -313,6 +352,8 @@ Le fichier 'panel-config.txt' contient certains paramètres par défaut chargés
 * led-rows = nb de lignes de leds par carreau (défaut 32)
 * led-cols = nb de colonnes de leds par carreau (défaut 32)
 ```
+Le texte à afficher doit être écrit directement dans 'message.txt' avec ses commandes en ligne.
+
 LIMITATIONS
 ===========
 Le proto toune sur une carte PI 3b+ (donc assez rapide) avec un écran de 160*64 pixels (5*32 / 2*32), piloté sur deux lignes parallèles. La vitesse est suffisante dans ce cas, veci dit il m'a paru raisonnable de limiter le buffer à une taille max de 512*512 en dur dans le programme. Une taille carrée est utile pour la rotation d'image...
