@@ -14,7 +14,7 @@ LDFLAGS+=-L$(RGB_LIBDIR) -l$(RGB_LIBRARY_NAME) -lrt -lm -lpthread
 # Imagemagic flags, only needed if actually compiled.
 MAGICK_CXXFLAGS?=`GraphicsMagick++-config --cppflags --cxxflags`
 MAGICK_LDFLAGS?=`GraphicsMagick++-config --ldflags --libs`
-AV_CXXFLAGS=`pkg-config --cflags  libavcodec libavformat libswscale libavutil`
+AV_CXXFLAGS=`pkg-config --cflags libavcodec libavformat libswscale libavutil`
 
 all : $(BINARIES)
 
@@ -22,13 +22,13 @@ $(RGB_LIBRARY): FORCE
 	$(MAKE) -C $(RGB_LIBDIR)
 
 panelviewer: panelviewer.o $(RGB_LIBRARY)
-	$(CXX) $(CXXFLAGS) panelviewer.o -o $@ $(LDFLAGS) $(MAGICK_LDFLAGS)
+	$(CXX) $(CXXFLAGS) panelviewer.o -o $@ $(LDFLAGS) $(MAGICK_LDFLAGS) `pkg-config --cflags --libs  libavcodec libavformat libswscale libavutil`
 
 %.o : %.cc
 	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) -c -o $@ $<
 
 panelviewer.o : panelviewer.cc
-	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $<
+	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $< -Wno-deprecated-declarations
 
 # We're using a couple of deprecated functions. Pull request to update this to
 # the latest libraries is welcome.

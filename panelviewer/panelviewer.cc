@@ -3,6 +3,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
+// Ancient AV versions forgot to set this.
+#define __STDC_CONSTANT_MACROS
+
 #include "led-matrix.h"
 #include "pixel-mapper.h"
 #include <fcntl.h>
@@ -22,6 +25,13 @@
 #include <Magick++.h>
 #include <magick/image.h>
 #include <limits.h>
+
+// libav: "U NO extern C in header ?"
+extern "C" {
+#  include <libavcodec/avcodec.h>
+#  include <libavformat/avformat.h>
+#  include <libswscale/swscale.h>
+}
 
 using rgb_matrix::GPIO;
 using rgb_matrix::Canvas;
@@ -59,8 +69,8 @@ pixcol white={255,255,255};
 
 //Variables écran Matrix
 unsigned short screenH, screenW;
-RGBMatrix *matrix=NULL;
-FrameCanvas *off_canvas=NULL;
+static RGBMatrix *matrix=NULL;
+static FrameCanvas *off_canvas=NULL;
 RGBMatrix::Options matrix_options;
 rgb_matrix::RuntimeOptions runtime_opt;
 
@@ -146,21 +156,254 @@ pixcol backcolor={0,0,0};
 pixcol inkcolor={0xC0,0xC0,0xC8};
 
 //-----------------------------------------------------------------------
+volatile bool interrupt_received = false;
+static void InterruptHandler(int signo) {
+  interrupt_received = true;
+}
+
+void CopyFrame(AVFrame *pFrame, FrameCanvas *canvas,
+               int offset_x, int offset_y, int width, int height) {
+ for (int y = 0; y < height; ++y) {
+   pixcol *pix = (pixcol*) (pFrame->data[0] + y*pFrame->linesize[0]);
+   for (int x = 0; x < width; ++x, ++pix)
+      canvas->SetPixel(x + offset_x, y + offset_y, pix->rr, pix->gg, pix->bb);
+ }
+}
+
+// Scale "width" and "height" to fit within target rectangle of given size.
+void ScaleToFitKeepAscpet(int fit_in_width, int fit_in_height,
+                          int *width, int *height) {
+  if (*height < fit_in_height && *width < fit_in_width) return; // Done.
+  const float height_ratio = 1.0 * (*height) / fit_in_height;
+  const float width_ratio  = 1.0 * (*width) / fit_in_width;
+  const float ratio = (height_ratio > width_ratio) ? height_ratio : width_ratio;
+  *width = roundf(*width / ratio);
+  *height = roundf(*height / ratio);
+}
+
+static void add_nanos(struct timespec *accumulator, long nanoseconds) {
+  accumulator->tv_nsec += nanoseconds;
+  while (accumulator->tv_nsec > 1000000000) {
+    accumulator->tv_nsec -= 1000000000;
+    accumulator->tv_sec += 1;
+  }
+}
+
+// Convert deprecated color formats to new and manually set the color range.
+// YUV has funny ranges (16-235), while the YUVJ are 0-255. SWS prefers to
+// deal with the YUV range, but then requires to set the output range.
+// https://libav.org/documentation/doxygen/master/pixfmt_8h.html#a9a8e335cf3be472042bc9f0cf80cd4c5
+SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
+                             int display_width, int display_height) {
+  AVPixelFormat pix_fmt;
+  bool src_range_extended_yuvj = true;
+  // Remap deprecated to new pixel format.
+  switch (codec_ctx->pix_fmt) {
+  case AV_PIX_FMT_YUVJ420P: pix_fmt = AV_PIX_FMT_YUV420P; break;
+  case AV_PIX_FMT_YUVJ422P: pix_fmt = AV_PIX_FMT_YUV422P; break;
+  case AV_PIX_FMT_YUVJ444P: pix_fmt = AV_PIX_FMT_YUV444P; break;
+  case AV_PIX_FMT_YUVJ440P: pix_fmt = AV_PIX_FMT_YUV440P; break;
+  default:
+    src_range_extended_yuvj = false;
+    pix_fmt = codec_ctx->pix_fmt;
+  }
+  SwsContext *swsCtx = sws_getContext(codec_ctx->width, codec_ctx->height,
+                                      pix_fmt,
+                                      display_width, display_height,
+                                      AV_PIX_FMT_RGB24, SWS_BILINEAR,
+                                      NULL, NULL, NULL);
+  if (src_range_extended_yuvj) {
+    // Manually set the source range to be extended. Read modify write.
+    int dontcare[4];
+    int src_range, dst_range;
+    int brightness, contrast, saturation;
+    sws_getColorspaceDetails(swsCtx, (int**)&dontcare, &src_range,
+                             (int**)&dontcare, &dst_range, &brightness,
+                             &contrast, &saturation);
+    const int* coefs = sws_getCoefficients(SWS_CS_DEFAULT);
+    src_range = 1;  // New src range.
+    sws_setColorspaceDetails(swsCtx, coefs, src_range, coefs, dst_range,
+                             brightness, contrast, saturation);
+  }
+  return swsCtx;
+}
+
+
+short Video(const char movie_file[128], FrameCanvas *offscreen_canvas) {
+  int vsync_multiple = 1;
+  bool maintain_aspect_ratio = false;        // !!!!!!!
+  unsigned int frame_skip = 0;
+
+  // Initalizing these to NULL prevents segfaults!
+  AVFormatContext   *pFormatCtx = NULL;
+  int               i, videoStream;
+  AVCodecContext    *pCodecCtxOrig = NULL;
+  AVCodecContext    *pCodecCtx = NULL;
+  AVCodec           *pCodec = NULL;
+  AVPacket          packet;
+  int               frameFinished;
+
+  // Register all formats and codecs
+  av_register_all();
+  avformat_network_init();
+
+  if (avformat_open_input(&pFormatCtx, movie_file, NULL, NULL) != 0) {
+    perror("Issue opening file: ");
+    return -1;
+  }
+
+  if (avformat_find_stream_info(pFormatCtx, NULL) < 0) {
+    fprintf(stderr, "Couldn't find stream information\n");
+    return -1;
+  }
+
+  long frame_count = 0;
+
+  // Find the first video stream
+  videoStream=-1;
+  for (i=0; i < (int)pFormatCtx->nb_streams; ++i) {
+    if (pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
+      videoStream=i;
+      break;
+    }
+  }
+  if (videoStream == -1)
+    return -1; // Didn't find a video stream
+
+  // Get a pointer to the codec context for the video stream
+  pCodecCtxOrig = pFormatCtx->streams[videoStream]->codec;
+  double fps = av_q2d(pFormatCtx->streams[videoStream]->avg_frame_rate);
+  if (fps < 0) {
+    fps = 1.0 / av_q2d(pFormatCtx->streams[videoStream]->codec->time_base);
+  }
+
+  // Find the decoder for the video stream
+  pCodec=avcodec_find_decoder(pCodecCtxOrig->codec_id);
+  if (pCodec==NULL) {
+    fprintf(stderr, "Unsupported codec!\n");
+    return -1;
+  }
+  // Copy context
+  pCodecCtx = avcodec_alloc_context3(pCodec);
+  if (avcodec_copy_context(pCodecCtx, pCodecCtxOrig) != 0) {
+    fprintf(stderr, "Couldn't copy codec context");
+    return -1;
+  }
+
+  // Open codec
+  if (avcodec_open2(pCodecCtx, pCodec, NULL)<0) return -1;
+
+  /*
+   * Prepare frame to hold the scaled target frame to be send to matrix.
+   */
+  AVFrame *output_frame = av_frame_alloc();  // Target frame for output
+  int display_width = pCodecCtx->width;
+  int display_height = pCodecCtx->height;
+  if (maintain_aspect_ratio) {
+    display_width = pCodecCtx->width;
+    display_height = pCodecCtx->height;
+    // Make display fit within canvas.
+    ScaleToFitKeepAscpet(matrix->width(),matrix->height(),&display_width, &display_height);
+  } else {
+    display_width = matrix->width();
+    display_height = matrix->height();
+  }
+  // Letterbox or pillarbox black bars.
+  const int display_offset_x = (matrix->width() - display_width)/2;
+  const int display_offset_y = (matrix->height() - display_height)/2;
+
+  // Allocate buffer to meet output size requirements
+  const size_t output_size = avpicture_get_size(AV_PIX_FMT_RGB24,
+                                           display_width,display_height);
+  uint8_t *output_buffer = (uint8_t *) av_malloc(output_size);
+
+  // Assign appropriate parts of buffer to image planes in output_frame.
+  // Note that output_frame is an AVFrame, but AVFrame is a superset
+  // of AVPicture
+  avpicture_fill((AVPicture *)output_frame, output_buffer, AV_PIX_FMT_RGB24,
+                 display_width, display_height);
+
+  // initialize SWS context for software scaling
+  SwsContext *const sws_ctx = CreateSWSContext(pCodecCtx,
+                                               display_width, display_height);
+  if (!sws_ctx) {
+    fprintf(stderr, "Trouble doing scaling to %dx%d :(\n",
+            matrix->width(), matrix->height());
+    return 1;
+  }
+
+  signal(SIGTERM, InterruptHandler);
+  signal(SIGINT, InterruptHandler);
+
+  const long frame_wait_nanos = 1e9 / fps;
+  struct timespec next_frame;
+
+  unsigned int frames_to_skip;
+  int readed;
+
+  AVFrame *decode_frame = av_frame_alloc();  // Decode video into this
+
+  do {
+    frames_to_skip = frame_skip;
+    clock_gettime(CLOCK_MONOTONIC, &next_frame);
+
+    while (!interrupt_received) {
+      readed = av_read_frame(pFormatCtx, &packet);
+      if (readed<0) break;
+      // Is this a packet from the video stream?
+      if (packet.stream_index==videoStream) {
+        // Determine absolute end of this frame now so that we don't include
+        // decoding overhead. TODO: skip frames if getting too slow ?
+        add_nanos(&next_frame, frame_wait_nanos);
+        
+        // Decode video frame
+        avcodec_decode_video2(pCodecCtx, decode_frame, &frameFinished, &packet);
+        
+        if (frames_to_skip) { frames_to_skip--; continue; }
+        
+        // Did we get a video frame?
+        if (frameFinished) {
+          // Convert the image from its native format to RGB
+          sws_scale(sws_ctx, (uint8_t const * const *)decode_frame->data,
+                    decode_frame->linesize, 0, pCodecCtx->height,
+                    output_frame->data, output_frame->linesize);
+          CopyFrame(output_frame, offscreen_canvas,
+                    display_offset_x, display_offset_y, display_width, display_height);
+          frame_count++;
+          offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas, vsync_multiple);
+        }
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, NULL);
+      }
+      // Free the packet that was allocated by av_read_frame
+      av_free_packet(&packet);
+    }
+  } while ( (!interrupt_received)&&(readed>=0) );
+
+  av_free(output_buffer);
+  av_frame_free(&output_frame);
+  av_frame_free(&decode_frame);
+
+  // Close the codecs
+  avcodec_close(pCodecCtx);
+  avcodec_close(pCodecCtxOrig);
+
+  // Close the video file
+  avformat_close_input(&pFormatCtx);
+
+  return frame_count;
+}
+
+//-----------------------------------------------------------------------
 bool file_exist(char *fname) {
   struct stat buffer;
   return (stat(fname, &buffer)==0);
 }
 //-----------------------------------------------------------------------
-volatile bool interrupt_received = false;
-static void InterruptHandler(int signo) {
-  interrupt_received = true;
-}
-//-----------------------------------------------------------------------
 static int usage(const char *progname) {
-  fprintf(stderr, "usage: %s [options] \n",progname);
-  fprintf(stderr, "\nGeneral LED matrix options:\n");
+  printf("usage: %s [options] \n",progname);
+  printf("\nGeneral LED matrix options:\n");
   rgb_matrix::PrintMatrixFlags(stderr);
-  fprintf(stderr, "\nThe -w, -t and -l options apply to the following images "
+  printf("\nThe -w, -t and -l options apply to the following images "
           "until a new instance of one of these options is seen.\n"
           "So you can choose different durations for different images.\n");
   return 1;
@@ -316,7 +559,7 @@ unsigned short n,x,y;
 }
 //-----------------------------------------------------------------------
 //Rafraichit la matrix canvas avec buff|]
-void Fresh(RGBMatrix *matx, FrameCanvas *canv) {
+void Fresh(FrameCanvas *canv) {
 unsigned short x, y, ybuff;
 pixcol col;
 
@@ -341,7 +584,7 @@ pixcol col;
    }
  }
  //Applique les modif
- canv = matx->SwapOnVSync(canv, 1);
+ canv = matrix->SwapOnVSync(canv, 1);
 }
 //-----------------------------------------------------------------------
 //Inverse Toutes les couleurs RVB
@@ -357,7 +600,7 @@ unsigned short n,x,y;
      }
    }
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(speed*4000);
  }
@@ -391,7 +634,7 @@ void Rotate(RGBMatrix *matx, FrameCanvas *canvas, short nb, short sens) {
    }
    else ang = (float)nbrot * deg_to_rad * sens;
   
-   //préremplit buff2
+   //préremplit buff2 (en carré!)
    for (x = 0; x < screenW; ++x) {
     for (y = 0; y < screenW; ++y) buff2[x][y] = backcolor;
    }
@@ -414,7 +657,7 @@ void Rotate(RGBMatrix *matx, FrameCanvas *canvas, short nb, short sens) {
      for (y = screenH; y < screenH+screenH; ++y) buff[x][y] = buff2[x][y];
    }
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canvas);
+   Fresh(canvas);
    usleep(2000);
  }
  //Finit par image droite
@@ -473,8 +716,8 @@ void Twirl(RGBMatrix *matx, FrameCanvas *canvas, short nb) {
      for (y = screenH; y < screenH+screenH; ++y) buff[x][y] = buff2[x][y];
    }
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canvas);
-   usleep(300);
+   Fresh(canvas);
+   usleep(150);
  }
 }
 //-----------------------------------------------------------------------
@@ -509,7 +752,7 @@ void Explode(RGBMatrix *matx, FrameCanvas *canvas, short nb) {
   fx *= 1.25;
   
   //Recopie portion du buff a afficher dans off_canvas
-  Fresh(matx, canvas);
+  Fresh(canvas);
   usleep(speed*2000);
  }
 }
@@ -528,7 +771,7 @@ unsigned short n,x,y;
    for (x = 0; x<screenW; x++) buff[x][0] = backcolor;
 
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
 
    //Réglage de SPEED
    usleep(speed * 750);
@@ -549,7 +792,7 @@ unsigned short n,x,y;
    for (x = 0; x<screenW; x++) buff[x][ymax_buff-1] = backcolor;
    
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    
    //Réglage de SPEED
    usleep(speed * 750);
@@ -569,7 +812,7 @@ unsigned short n,x,y;
      }
    }
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    if (b<1) break;
 
    //Réglage de SPEED
@@ -581,7 +824,7 @@ unsigned short n,x,y;
    }
  }
  //Recopie portion du buff a afficher dans off_canvas
- Fresh(matx, canv);
+ Fresh(canv);
 }
 //-----------------------------------------------------------------------
 //Fait un effet Changement de couleur du Fond (n = vitesse)
@@ -617,7 +860,7 @@ short col;
     a0=a1; b0=b1; c0=c1;
     
     //Recopie portion du buff a afficher dans off_canvas
-    Fresh(matx, canv);
+    Fresh( canv);
     //Réglage de SPEED
     usleep(spd * 500);
  }
@@ -634,7 +877,7 @@ short col;
     }
   }
  //Recopie portion du buff a afficher dans off_canvas
- Fresh(matx, canv);
+ Fresh(canv);
 }
 //-----------------------------------------------------------------------
 //BLUR - Fait un effet de Flou progressif (n = vitesse)
@@ -667,7 +910,7 @@ short a, b, c;
      }
     }
     //Recopie portion du buff a afficher dans off_canvas
-    Fresh(matx, canv);
+    Fresh(canv);
     //Réglage de SPEED
     usleep(spd * 5000);
  }
@@ -706,7 +949,7 @@ short col;
     a0=a1; b0=b1; c0=c1;
 
     //Recopie portion du buff a afficher dans off_canvas
-    Fresh(matx, canv);
+    Fresh(canv);
     //Réglage de SPEED 
     usleep(spd * 500);
  }
@@ -723,7 +966,7 @@ short col;
     }
   }
  //Recopie portion du buff a afficher dans off_canvas
- Fresh(matx, canv);
+ Fresh(canv);
 }
  
 //-----------------------------------------------------------------------
@@ -747,7 +990,7 @@ pixcol buff0[screenW][ymax_buff];
        buff[x][y] = backcolor;
    }
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(speed*5000);
    
@@ -759,7 +1002,7 @@ pixcol buff0[screenW][ymax_buff];
    }
 
   //Recopie portion du buff a afficher dans off_canvas
-  Fresh(matx, canv);
+  Fresh(canv);
   //Réglage de SPEED
   usleep(speed*12000);
  }
@@ -770,9 +1013,8 @@ void Scroll_Left(short nb) {
 unsigned short n,x,y;
  //Scrolle 'n' coups à gauche tout le buffer a afficher
  for (n=0 ; n<nb ; n++) {
-   for (y = 0; y<ymax_buff; y++) {
+   for (y = 0; y<ymax_buff; y++)
      for (x = 0; x < xmax_buff-1; x++) buff[x][y] = buff[x+1][y];
-   }
  }
 }
 //-----------------------------------------------------------------------
@@ -781,9 +1023,8 @@ void Scroll_Right(short nb) {
 unsigned short n,x,y;
  //Scrolle 'n' coups à droite
  for (n=0 ; n<nb ; n++) {
-   for (y = 0; y < ymax_buff; y++) {
+   for (y = 0; y < ymax_buff; y++)
      for (x = xmax_buff-1; x>0; x--) buff[x][y] = buff[x-1][y];
-   }
  }
 }
 //-----------------------------------------------------------------------
@@ -795,13 +1036,13 @@ unsigned short n;
  
    Scroll_Left(1);  
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(speed * 1500);
 
    Scroll_Right(1);  
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(speed * 1500);
 
@@ -811,35 +1052,32 @@ unsigned short n;
 }
 //----------------------------------------------------------------------
 //Recopie une image(ou portion)(calée sur dx,dy) sur l'écran à (destx,desty)
-void ImgtoBuff(Magick::Image img,short dx,short dy,short destx,short desty,short solid) {
-short x, y, nx, ny, dnx, dny, delta;
+void ImgtoBuff(const Magick::Image img,short dx,short dy,short destx,short desty,short solid) {
+short x, y, nx, ny, delta;
 uint8_t xr,xg,xb;
 short maxx = img.columns();
 short maxy = img.rows();
 
   for (y = 0; y < screenH; ++y) {
-    //pointeur dans image
     ny=dy+y;
     if (ny>=maxy) break;
-    
-    //pointeur dans buff
-    dny=desty+y;
-    if ( (dny<0)||(dny>=ymax_buff) ) break;
-    
+    short wry = y+wry_ptr;
+    if (wry >= ymax_buff) break;
+
     for (x = 0; x < screenW; ++x) {
       nx= dx + x;
       if (nx>=maxx) break;
-       
-      //test pointeur dans buff
-      dnx=destx+x;
-      if ( (dnx<0)||(dnx>=xmax_buff) ) break;
-      
+      short wrx = x+wrx_ptr;
+      if (wrx >= xmax_buff) break;
+
       const Magick::Color &c = img.pixelColor(nx, ny);
       xr = ScaleQuantumToChar(c.redQuantum());
       xg = ScaleQuantumToChar(c.greenQuantum());
       xb = ScaleQuantumToChar(c.blueQuantum());      
-      
-      //Test pour dessin transparent pas sur Couleur fond ?
+
+      short dnx=destx+x;
+      short dny=desty+y;
+       //Test pour dessin transparent pas sur Couleur fond ?
       if (solid==0) {
         //mode transparent
         delta = abs(xr-backcolor0.rr)+abs(xg-backcolor0.gg)+abs(xb-backcolor0.bb);
@@ -875,7 +1113,7 @@ unsigned short n, nx, ny;
    ImgtoBuff(img, 0, 0, nx, ny, 0);
    
    //Affiche le buff dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(speed * 5000);
  }
@@ -895,7 +1133,7 @@ unsigned short nx, ny;
      ImgtoBuff(img, 0, 0, nx, ny, 0);
 
      //Affiche le buff dans off_canvas
-     Fresh(matx, canv);
+     Fresh(canv);
      //Réglage de SPEED
      usleep(speed * 6000);
 
@@ -939,14 +1177,14 @@ pixcol buff0[xmax_buff][ymax_buff];
       }
    }
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(speed * 2500);
  }
  //Finis avec image finale
  ImgtoBuff(img, 0, 0, wrx_ptr, wry_ptr, solid);
  //Recopie portion du buff a afficher dans off_canvas
- Fresh(matx, canv);
+ Fresh(canv);
 }
 //-----------------------------------------------------------------------
 //Effet de pixelisation jusqu'au gris total
@@ -981,7 +1219,7 @@ short pix;
      }
    }
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(s * 12000);
  }
@@ -1004,7 +1242,7 @@ unsigned short n, x, y;
    }
     
    //Recopie portion du buff a afficher dans off_canvas
-   Fresh(matx, canv);
+   Fresh(canv);
    //Réglage de SPEED
    usleep(s * 1000);
   }
@@ -1019,11 +1257,11 @@ unsigned short x,y;
   }
 }
 //-----------------------------------------------------------------------
-// IMGSWP : Affiche une grande image en balayage (images/xxx.xxx)
-void ImgSwp(RGBMatrix *matx, FrameCanvas *canv, char *file) {
+// IMGSWP UP/DWN : Affiche une grande image en balayage (images/xxx.xxx)
+void ImgSwp(RGBMatrix *matx, FrameCanvas *canv, char *file, short sens) {
 short dx, dy;
 short nx=0, ny=0;
-const short spd0=2000;
+const short spd0=500;
 
  Magick::Image img;
  img.read(file);
@@ -1034,32 +1272,40 @@ const short spd0=2000;
  if (dy<0) dy=0;
 
   //focus vers la droite 
-  for (nx=0; nx<dx; nx++) {
-    ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
-    //Recopie portion du buff a afficher dans off_canvas
-    Fresh(matx, canv);
-    usleep(speed * spd0);
+  if (sens==2) {
+   for (nx=0; nx<=dx; nx++) {
+     ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
+     //Recopie portion du buff a afficher dans off_canvas
+     Fresh(canv);
+     usleep(speed * spd0);
+   }
   }
   //focus vers le bas 
-  for (ny=0; ny<dy; ny++) {
-    ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
-    //Recopie portion du buff a afficher dans off_canvas
-    Fresh(matx, canv);
-    usleep(speed * spd0);
+  if (sens==0) {
+   for (ny=0; ny<dy; ny++) {
+     ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
+     //Recopie portion du buff a afficher dans off_canvas
+     Fresh(canv);
+     usleep(speed * spd0);
+   }
   }
   //focus vers la gauche 
-  for (nx=dx; nx>0; nx--) {
-    ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
-    //Recopie portion du buff a afficher dans off_canvas
-    Fresh(matx, canv);
-    usleep(speed * spd0);
+  if (sens==3) {
+   for (nx=dx; nx>0; nx--) {
+     ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
+     //Recopie portion du buff a afficher dans off_canvas
+     Fresh(canv);
+     usleep(speed * spd0);
+   }
   }
   //focus vers le Haut 
-  for (ny=dy; ny>0; ny--) {
-    ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
-    //Recopie portion du buff a afficher dans off_canvas
-    Fresh(matx, canv);
-    usleep(speed * spd0);
+  if (sens==1) {
+   for (ny=dy; ny>0; ny--) {
+     ImgtoBuff(img, nx, ny, wrx_ptr, wry_ptr, solid);
+     //Recopie portion du buff a afficher dans off_canvas
+     Fresh(canv);
+     usleep(speed * spd0);
+   }
   }
 }
 //-----------------------------------------------------------------------
@@ -1115,7 +1361,7 @@ ssize_t read;
  }
 }
 //-----------------------------------------------------------------------
-void ImgPaint(RGBMatrix *matrix, FrameCanvas *canv, char *para, short scaling) {
+void ImgPaint(FrameCanvas *canv, char *para, short scaling) {
 char file[128];
 std::vector<Magick::Image> img0, imgs;
 uint32_t delai_us=100*speed;
@@ -1125,58 +1371,72 @@ short cy=0;   // recentrage en y si imgH grande
   strcpy(file, "../images/");
   strcat(file, para);
   if ( !file_exist(file) ) return;
-  
+
   readImages(&img0, file);
   
   //Test si Gif-animé ?
   if (img0.size()>1) {
      //GIF animé - mise au propre
      Magick::coalesceImages(&imgs, img0.begin(), img0.end());
+      
+     //recentrage image en y si imgH > screenH
+     if (imgs[0].rows() > screenH) cy=(imgs[0].rows() - screenH)/2;
      
      //recopie que si pas au bout du buff
      for(unsigned short w=0; w<img0.size(); w++) {
         //scaling sur la Largeur=écran
         if (scaling & 2) {
-           short nh=(screenW * imgs[w].rows()) / imgs[w].columns();
-           short ny=(nh>screenH)?(nh-screenH):0;
-           imgs[w].scale(Geometry(screenW,nh,0,ny));
-           //recentrage image en y si imgH > screenH
-           if (nh > screenH) cy=(nh - screenH)/2;
+          short nh=(screenW * imgs[w].rows()) / imgs[w].columns();
+          short ny=(nh>screenH)?(nh-screenH):0;
+          imgs[w].resize(Geometry(screenW,nh,0,ny));
+          //recentrage image en y si imgH > screenH
+          if (nh > screenH) cy=(nh - screenH)/2;
         }
         //scaling sur la hauteur=écran
         if (scaling & 4) {
-          imgs[w].scale(Geometry(screenW,screenH,0,0));
+          short nw=(screenH * imgs[w].columns()) / imgs[w].rows();
+          imgs[w].resize(Geometry(nw, screenH, 0, 0));
+          //pas de centrage en y !
+          cy=0;
         }
         delai_us = 10000*imgs[w].animationDelay();
 
         //copie l'image
         ImgtoBuff(imgs[w], 0, cy, wrx_ptr, wry_ptr, solid);
-
         //Recopie portion du buff a afficher dans off_canvas
-        Fresh(matrix, canv);   
+        Fresh(canv);   
         //SPEED selon le gifanim
         usleep(delai_us);
      }
-
+     //Va vers la droite dans 'buff'
+     wrx_ptr += imgs[0].columns();     // !!!!!!!!!!!!
   }
   else {
+     //recentrage image en y si imgH > screenH
+     if (img0[0].rows() > screenH) cy=(img0[0].rows() - screenH)/2;
+     
      //Image simple - copie que si pas au bout du buff
      //scaling sur la Largeur=écran
      if (scaling & 2) {
        short nh=(screenW * img0[0].rows()) / img0[0].columns();
        short dy=(nh>screenH)?(nh-screenH):0;
-       img0[0].scale(Geometry(screenW,nh,0,dy));
+       img0[0].resize(Geometry(screenW,nh,0,dy));
+       //recentrage image en y si imgH > screenH
+       if (nh > screenH) cy=(nh - screenH)/2;
      }
      //scaling sur la hauteur=écran
      if (scaling & 4) {
-       img0[0].scale(Geometry(screenW,screenH,0,0));
+       short nw=(screenH * img0[0].columns()) / img0[0].rows();
+       img0[0].resize(Geometry(nw, screenH, 0, 0));
+       //pas de centrage en y !
+       cy=0;
      }
      //copie l'image
-     ImgtoBuff(img0[0], 0, 0, wrx_ptr, wry_ptr, solid);
-  }
+     ImgtoBuff(img0[0], 0, cy, wrx_ptr, wry_ptr, solid);
 
-  //Va vers la droite dans 'buff'
-  wrx_ptr += imgs[0].columns();
+    //Va vers la droite dans 'buff'
+    wrx_ptr += img0[0].columns();     // !!!!!!!!!!!
+  }
 }
 //-----------------------------------------------------------------------
 //Acchiche le car dans buff[] et avance le curseur
@@ -1293,7 +1553,7 @@ int main(int argc, char *argv[]) {
       return 1;
       break;
     case 'R':
-      fprintf(stderr, "-R is deprecated.Use --led-pixel-mapper=\"Rotate:%s\" instead.\n", optarg);
+      printf("-R is deprecated.Use --led-pixel-mapper=\"Rotate:%s\" instead.\n", optarg);
       return 1;
       break;
     default:
@@ -1319,10 +1579,10 @@ int main(int argc, char *argv[]) {
   matrix_options.cols = cols;
 
   // Prepare matrix
-  RGBMatrix *matrix = CreateMatrixFromOptions(matrix_options, runtime_opt);
+  matrix = CreateMatrixFromOptions(matrix_options, runtime_opt);
   if (matrix == NULL) return 1;
   
-  FrameCanvas *off_canvas = matrix->CreateFrameCanvas();
+  off_canvas = matrix->CreateFrameCanvas();
   off_canvas->Clear();
 
   //Init les variables dimensions
@@ -1368,7 +1628,7 @@ int main(int argc, char *argv[]) {
    
    //Sort si fin de texte  
    if ( (cmd[0]==0) && (affchar=='\0') ) break;
-
+   
    // Lit Une lettre seule (font\xxx.gif) de affchar
    if ( (strlen(cmd)==0) && (affchar!='\0') ) {
      PrintChar(affchar);
@@ -1392,16 +1652,16 @@ int main(int argc, char *argv[]) {
            //Flag que background ok
            background = 1;
            img.read(filename);
-           //fprintf(stderr, "img= %s\n",filename);
+           //printf("img= %s\n",filename);
            //recopie que si pas au bout du buff
            if (img.columns() < xmax_buff) {           
             for (y = 0; y < img.rows(); ++y) {
               if (y>=ymax_buff) break;
               for (x = 0; x < img.columns(); ++x) {
                 const Magick::Color &c = img.pixelColor(x, y);
-                backmask[x][y].rr = ScaleQuantumToChar(c.redQuantum());
-                backmask[x][y].gg = ScaleQuantumToChar(c.greenQuantum());
-                backmask[x][y].bb = ScaleQuantumToChar(c.blueQuantum());
+                backmask[x][y+screenH].rr = ScaleQuantumToChar(c.redQuantum());
+                backmask[x][y+screenH].gg = ScaleQuantumToChar(c.greenQuantum());
+                backmask[x][y+screenH].bb = ScaleQuantumToChar(c.blueQuantum());
               }
             }
            }
@@ -1434,7 +1694,7 @@ int main(int argc, char *argv[]) {
        //========= CRENAGE:n = retrait en -/+ en pixel par carac
        if (!strcmp(cmd,"CRENAGE")) {
          crenage = atoi(cmdparam);
-         // fprintf(stderr, "cren= %d\n", crenage);
+         // printf("cren= %d\n", crenage);
        }
        //========= DIVIDE:n = divise ecran en 2 parties et vide tout (n=vitesse)
        if (!strcmp(cmd,"DIVIDE")) {
@@ -1478,21 +1738,27 @@ int main(int argc, char *argv[]) {
        }
        //--------- IMG: Affiche une image (images/xxx.xxx)
        if (!strcmp(cmd,"IMG")) {
-          ImgPaint(matrix, off_canvas, cmdparam, 0);
+          ImgPaint(off_canvas, cmdparam, 0);
        }
        //--------- IMGW: Affiche une image rescalée sur Screen Width (images/xxx.xxx)
        if (!strcmp(cmd,"IMGW")) {
-          ImgPaint(matrix, off_canvas, cmdparam, 2);
+          ImgPaint(off_canvas, cmdparam, 2);
        }
        //--------- IMGH: Affiche une image rescalée sur Screen Height (images/xxx.xxx)
        if (!strcmp(cmd,"IMGH")) {
-          ImgPaint(matrix, off_canvas, cmdparam, 4);
+          ImgPaint(off_canvas, cmdparam, 4);
        }
-       //--------- IMGSWP: Aff une image > écran en faisant un balayage (images/xxx.xxx)
-       if (!strcmp(cmd,"IMGSWP")) {
+       //--------- IMGSWPUP: Balaie une image (bas vers le haut) (images/xxx.xxx)
+       if (!strcmp(cmd,"IMGSWPUP")) {
          strcpy(filename, "../images/");
          strcat(filename,cmdparam);
-         if ( file_exist(filename) ) ImgSwp(matrix, off_canvas, filename);
+         if ( file_exist(filename) ) ImgSwp(matrix, off_canvas, filename, 1);
+       }
+       //--------- IMGSWPDWN: Balaie une image (haut vers le bas) (images/xxx.xxx)
+       if (!strcmp(cmd,"IMGSWPDWN")) {
+         strcpy(filename, "../images/");
+         strcat(filename,cmdparam);
+         if ( file_exist(filename) ) ImgSwp(matrix, off_canvas, filename, 0);
        }
        //========= INK:rrggbb = 'ABEB72' couleur écriture rgb des chars en hexa
        if (!strcmp(cmd,"INK")) {
@@ -1509,7 +1775,7 @@ int main(int argc, char *argv[]) {
            //scroll buff
            Scroll_Left(1);
            //MAJ le buff a afficher dans off_canvas
-           Fresh(matrix, off_canvas);
+           Fresh(off_canvas);
            //Réglage de SPEED
            usleep(speed * 500);
          }
@@ -1553,7 +1819,7 @@ int main(int argc, char *argv[]) {
            //scroll buff
            Scroll_Right(1);
            //MAJ le buff a afficher dans off_canvas
-           Fresh(matrix, off_canvas);
+           Fresh( off_canvas);
            //Réglage de SPEED
            usleep(speed * 500);
          }
@@ -1577,7 +1843,7 @@ int main(int argc, char *argv[]) {
        //========= SETY:n = fixe le pointeur Y ecriture en pixel
        if (!strcmp(cmd,"SETY")) {
          //le y0 est en fait à screenH !
-         wry_ptr = screenH + atoi(cmdparam);
+         wry_ptr = atoi(cmdparam);
        }
        //========= SHAKE:n = effet de Secousse (n fois)
        if (!strcmp(cmd,"SHAKE")) {
@@ -1635,37 +1901,37 @@ int main(int argc, char *argv[]) {
        if (!strcmp(cmd,"UP")) {
          Scroll_Up(matrix, off_canvas, atoi(cmdparam));
        }
-
+       //========= VIDEO:file = affiche video mp4
+       if (!strcmp(cmd,"VIDEO")) {
+         strcpy(filename, "../images/");
+         strcat(filename,cmdparam);
+         if ( file_exist(filename) ) Video(filename, off_canvas);
+       }
        //Raz la commande
        cmd[0]='\0';
-
    }  // end else commande a traiter
-   
-  //(Si Fixe=0) Scrolle à gauche tout le buffer a afficher
-  if ( fixe==0 ) {
-    while ( wrx_ptr > screenW ) {     
-      //Réglage de SPEED
-      usleep(speed * 100);
-      //scroll buff
-      Scroll_Left(step);
-      //MAJ le buff a afficher dans off_canvas
-      Fresh(matrix, off_canvas);
-      //wrx_ptr à gauche le write ptr
-      wrx_ptr -= step;
-      //Si ralenti (SLOW) avant stop
-      if (slowing>0) {
-        slowing--;
-        speed = speed+12;
-      }
-    }
-  }
-  else {
-    //Réglage de SPEED
-    usleep(speed * 100);
-  }
+
+   //(Si Fixe=0) Scrolle à gauche tout le buffer a afficher
+   if ( fixe==0 ) {
+     while ( wrx_ptr > screenW ) {     
+       //Réglage de SPEED
+       usleep(speed * 100);
+       //scroll buff
+       Scroll_Left(step);
+       //MAJ le buff a afficher dans off_canvas
+       Fresh(off_canvas);
+       //wrx_ptr à gauche le write ptr
+       wrx_ptr -= step;
+       //Si ralenti (SLOW) avant stop
+       if (slowing>0) { slowing--; speed = speed+12; }
+     }
+   } else {
+     //Réglage de SPEED
+     usleep(speed * 100);
+   }
 
   //MAJ le buff a afficher dans off_canvas
-  Fresh(matrix, off_canvas);
+  Fresh(off_canvas);
  
  }  // end while
  //...................................................

@@ -1,8 +1,8 @@
-//.......................................................................[[
-//                 Définition et paramètres du Texte                     [[
-//-----------------------------------------------------------------------||
-//Les fontes utilisent les codes ASCII standards de 0x20 à 0x7E- sauf le caractère € qui prend la valeur 0x7F
-
-msg = "<CLEAR:0><SPEED:15><INK:202020><CADRE:1><FONT:comic64><INK:00D000><FONTSIZE:44><CRENAGE:-3><SOLID:0><SETX:0><SETY:0><IMGW:pharma2.gif><SETX:50><SETY:0><FADE:8><IMGH:pharma2.gif><ROTSPEED:720><FADE:20><SETY:9>Pharmacie MEDOC <PAUSE:1><EXPLODE:20><CLEAR:0><FIXE:1><FONTSIZE:26><CRENAGE:-1><SETX:4><SETY:-28>ouvert <INK:e0e0e0>8h-22h<SETX:6><SETY:-60><INK:e0e0e0>Promos <INK:00e000>-50%<INK:00e000><DOWN:63><PAUSE:1><RAINBOWINK:4><BLINK:7><SETX:8><SETY:72><INK:e0e0e0>Tiers payant<SETX:4><SETY:96><FONTSIZE:24><INK:00e000>toute mutuelle<UP:63><PAUSE:1><RAINBOWINK:5><BLINK:6><PIXELISE:15><FIXE:0><RESET:>"
-
-msg = "<CLEAR:0><SPEED:22><INK:808070><CADRE:1><SOLID:0><INK:d01010><FONTSIZE:29><FONT:arial64><CRENAGE:-3><TIME:0><PAUSE:2><SETX:5><SETY:3>Annabelle<SETX:3><SETY:34>estderetour<PAUSE:1><SOLID:1><SETX:0><SETY:0><FONDU:anabelle.jpg><PAUSE:2><TWIRL:720><EXPLODE:40><RESET:0>"
+<CLEAR:0><SPEED:15><INK:202020><CADRE:1><FONT:comic64><INK:00D000><FONTSIZE:44>
+<CRENAGE:-3><SOLID:0><SETX:0><SETY:0>
+<IMGW:pharma2.gif><SETX:50><SETY:0><FADE:8><IMGH:pharma2.gif><ROTSPEED:720><FADE:20><SETY:9>Pharmacie MEDOC <PAUSE:1>
+<EXPLODE:20><CLEAR:0><FIXE:1><FONTSIZE:26><CRENAGE:-1>
+<SETX:4><SETY:-28>ouvert <INK:e0e0e0>8h-22h<SETX:6><SETY:-60><INK:e0e0e0>Promos <INK:00e000>-50%<INK:00e000><DOWN:63>
+<PAUSE:1><RAINBOWINK:4><BLINK:7><SETX:8><SETY:72><INK:e0e0e0>Tiers payant
+<SETX:4><SETY:96><FONTSIZE:24><INK:00e000>toute mutuelle<UP:63><PAUSE:1>
+<RAINBOWINK:5><BLINK:6><PIXELISE:15><FIXE:0><RESET:>

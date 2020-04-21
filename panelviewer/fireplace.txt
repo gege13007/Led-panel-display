@@ -1,0 +1,3 @@
+<CLEAR:0><PAUSE:3><BACKGRD:chemine.gif><BACKCOLOR:101010><SPEED:14><SOLID:0><FONT:comic64><FONTSIZE:44>
+<INK:b0b0ff><SETY:74><CRENAGE:-3>  Warm up by a Sweat Fireplace...           <CLEAR:0><BACKGRD:><IMG:chemine.gif><FADE:29>
+<VIDEO:feu3b.avi><RESET:0>
