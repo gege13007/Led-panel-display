@@ -1,5 +1,5 @@
-BUILD A VERSATILE PROGRAMMABLE RGB DISPLAY PANEL
-======================================================
+BUILD A VERSATILE PROGRAMMABLE RGB MATRIX DISPLAY PANEL WITH RASPBERRY Pi
+=========================================================================
 After my first tests of led panel display building with 32x32 rgb leds matrix (with hzeller library - thanks to him) - I quickly realized that I couldn't draw so big characters to fit my panel display (the demo prog uses old bdf fonts).
 My idea was also to implement a simple but diversified markup language allowing to cover a maximum of situations.
 I began to build my own new fonts using small Gif images. It's now possible to write enriched texts, including some special commands to change the font, size, position, colors, and some special effects...
