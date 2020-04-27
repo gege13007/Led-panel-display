@@ -1,0 +1,1 @@
+g++ -Wall -O3 -g -fPIC  -DDEFAULT_HARDWARE=regular -Wextra -Wno-unused-parameter -fno-exceptions
